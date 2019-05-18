@@ -3,7 +3,7 @@
 uDSP is a small (as in "tiny") library to perform basic operations that are
 common in Digital Signal Processing, such as signal arithmetic, Fourier
 Transform, frequency response, filtering, etc. The library is exclusively 
-intended as an educational material and not as a professional tool. In no way 
+intended as an educational material and not as a production tool. In no way 
 it tries to replace industry-standard DSP libraries such as SciPy, NumPy, etc. 
 It has been developed as an additional accompanying material to some blog 
 articles about image processing and its main purpose is that of illustrating 
