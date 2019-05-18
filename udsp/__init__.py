@@ -18,5 +18,3 @@ not great, as one would expect for such computational-intensive applications.
 
 from . import signal
 from . import system
-
-__version__ = '1.0.0'
