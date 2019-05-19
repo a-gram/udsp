@@ -102,8 +102,10 @@ class Signal(object):
     def __neg__(self):
         raise NotImplementedError
 
-    def __pow__(self, power, modulo=None):
+    def __pow__(self, power):
         raise NotImplementedError
+
+    # TODO comparison (equality, "closeness")
 
     # ---------------------------------------------------------
     #                      Properties
@@ -184,12 +186,7 @@ class Signal(object):
 
         """
         # TODO: should we return a copy so the data is not shared?
-        if self._X and self._Y:
-            return (self._Y, self._X) if alls else self._Y
-        else:
-            raise ValueError(
-                "Signal is not properly set"
-            )
+        return (self._Y, self._X) if alls else self._Y
 
     def set(self, y, x=None, length=None):
         """

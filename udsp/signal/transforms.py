@@ -17,11 +17,18 @@ class Transform(object):
     This class defines the interface to be implemented by all domain
     transform operations.
 
+    Attributes
+    ----------
+    ndim: {1, 2}
+        Number of dimensions of the transform
+    d: {-1, 1}
+        Direction (1=forward, -1=inverse)
+
     """
-    def __init__(self, dim=1, d=1):
+    def __init__(self, ndim=1, d=1):
 
         super().__init__()
-        self._dim = dim
+        self._ndim = ndim
         self._d = d
 
     def forward(self, signal):
@@ -85,6 +92,14 @@ class Transform(object):
         else:
             raise RuntimeError
 
+    @property
+    def ndim(self):
+        return self._ndim
+
+    @property
+    def direction(self):
+        return self._d
+
 
 class FourierTransform(Transform):
     """
@@ -138,11 +153,11 @@ class FourierTransform(Transform):
 
     def forward(self, signal):
 
-        if self._dim == 1:
+        if self._ndim == 1:
             # Make sure the input is complex (required by the FFT)
             x = _mtx.vec_to(complex, signal.get())
             fft = self._fft1d(x)
-        elif self._dim == 2:
+        elif self._ndim == 2:
             # Same as above
             x = _mtx.mat_to(complex, signal.get())
             fft = self._fft2d(x)
@@ -155,10 +170,10 @@ class FourierTransform(Transform):
 
     def inverse(self, signal):
 
-        if self._dim == 1:
+        if self._ndim == 1:
             x = _mtx.vec_to(complex, signal.get())
             ifft = self._fft1d(x, -1)
-        elif self._dim == 2:
+        elif self._ndim == 2:
             x = _mtx.mat_to(complex, signal.get())
             ifft = self._fft2d(x, -1)
         else:
@@ -413,7 +428,7 @@ class Transforms(object):
     }
 
     @staticmethod
-    def get(signal, to_domain, dim=1):
+    def get(signal, to_domain, ndim=1):
         """
         Finds the transform to the specified domain
 
@@ -429,8 +444,8 @@ class Transforms(object):
             The signal to be transformed
         to_domain: str
             A string specifying the target domain
-        dim: int
-            The dimension of the transform space
+        ndim: int
+            The dimension of the transform
             # TODO: this parameter may be inferred from the signal?
 
         Returns
@@ -458,7 +473,7 @@ class Transforms(object):
             # )
 
         T = Transforms._MAPS[signal.domain + " -> " + to_domain]
-        T._dim = dim
+        T._ndim = ndim
 
         tsignal = T.execute(signal)
         tsignal._domain = to_domain

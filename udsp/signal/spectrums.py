@@ -101,6 +101,7 @@ class Spectrum1D(Spectrum):
             s2 = [s[(k + 1 + N // 2) % N] for k in range(N)]
 
             # Create the frequency axis (unshifted)
+            # TODO: Can be computed as the X-axis when the fft is computed?
             fk = [(k / N) * self._signal.sfreq
                   if k <= N // 2 else
                   -((N - k) / N) * self._signal.sfreq
@@ -111,6 +112,7 @@ class Spectrum1D(Spectrum):
         else:
             s2 = [s[(k + N // 2) % N] for k in range(N)]
 
+            # TODO: same as above
             fk = [(k / N) * self._signal.sfreq
                   if k < N // 2 else
                   -((N - k) / N) * self._signal.sfreq

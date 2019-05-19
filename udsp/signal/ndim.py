@@ -6,14 +6,14 @@ abstract class for n-dimensional signals.
 
 import math as _math
 
-from .base import Signal as _Signal
+from .base import Signal as Signal
 from ..zombies import mtx as _mtx
 from .transforms import Transforms
 from .spectrums import Spectrum, Spectrum1D, Spectrum2D
 from . import plotter as _plt
 
 
-class Signal1D(_Signal):
+class Signal1D(Signal):
     """
     A specialized class for 1-dimensional signals
 
@@ -28,14 +28,14 @@ class Signal1D(_Signal):
 
         super().__init__(**kwargs)
 
-        self._Y = y
-        self._X = x
-        self._length = length
-        self.yunits = yunits
-        self.xunits = xunits
-
         if y or x:
             self.set(y, x, length)
+        else:
+            self._Y = []
+            self._X = []
+            self._length = 0
+        self.yunits = yunits
+        self.xunits = xunits
 
     def __add__(self, other):
 
@@ -71,7 +71,7 @@ class Signal1D(_Signal):
         asignal._Y = _mtx.vec_neg(self._Y)
         return asignal
 
-    def __pow__(self, power, modulo=None):
+    def __pow__(self, power):
 
         asignal = self.clone()
         asignal._Y = _mtx.vec_pow(self._Y, power)
@@ -108,6 +108,11 @@ class Signal1D(_Signal):
 
         if y and not x:
             x = _mtx.vec_new(len(y), lambda n: n)
+
+        if length is not None and length < 0:
+            raise ValueError(
+                "Lengths can't be negative."
+            )
 
         self._length = length or len(x)
         self._sfreq = len(x) / self._length
@@ -284,7 +289,7 @@ class Signal1D(_Signal):
         return signal
 
 
-class Signal2D(_Signal):
+class Signal2D(Signal):
     """
     A specialized class for 2-dimensional signals
 
@@ -343,7 +348,7 @@ class Signal2D(_Signal):
         asignal._Y = _mtx.mat_neg(self._Y)
         return asignal
 
-    def __pow__(self, power, modulo=None):
+    def __pow__(self, power):
 
         asignal = self.clone()
         asignal._Y = _mtx.mat_pow(self._Y, power)
