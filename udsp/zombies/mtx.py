@@ -150,9 +150,12 @@ def dot_product(a, b):
 
     Returns
     -------
-    int, float
+    float, None
 
     """
+    if vec_empty(a) or vec_empty(b):
+        return None
+
     if len(a) != len(b):
         raise ValueError(
             "Incompatible vector sizes: len(a) != len(b)"
@@ -559,9 +562,9 @@ def mat_submat(a, r):
         A matrix of scalar values
     r: tuple
         A tuple with two pairs (cs, ce), (rs, re) indicating the start
-        and end points of the sub-matrix dimensions along the columns and
+        and end points of the sub-matrix along the columns and
         rows respectively. If cs>ce (or rs>re) then the sub-matrix will be
-        reversed along both dimensions. Values must be positive.
+        reversed along the dimensions. All values must be positive.
 
     Returns
     -------
@@ -572,8 +575,19 @@ def mat_submat(a, r):
     assert len(r) == 2 and len(r[0]) == 2 and len(r[1]) == 2
     assert min(r[0]) >= 0 and min(r[1]) >= 0
 
+    nmin, nmax = 0, len(a) - 1
+    mmin, mmax = 0, len(a[0]) - 1
+
     no, n1 = r[0][0], r[0][1]
     mo, m1 = r[1][0], r[1][1]
+
+    # For out of bound ranges, return an empty array
+    if (no > nmax and n1 > nmax or no < nmin and n1 < nmin or
+        mo > mmax and m1 > mmax or mo < mmin and m1 < mmin):
+        return []
+    # Clip the limits
+    no, n1 = max(min(no, nmax), nmin), max(min(n1, nmax), nmin)
+    mo, m1 = max(min(mo, mmax), mmin), max(min(m1, mmax), mmin)
 
     stepn = 1 if no <= n1 else -1
     stepm = 1 if mo <= m1 else -1
@@ -888,11 +902,13 @@ def vec_min(a):
 
     Returns
     -------
-    scalar
-        The minimum value in the vector. If the vector is complex then
-        the elements are compared by magnitude and phase.
+    scalar, None
+        The minimum value in the vector, or None if the vector is empty
 
     """
+    if vec_empty(a):
+        return None
+
     fmin, _ = _utl.get_min_max_f(a)
 
     # mn = a[0]
@@ -915,11 +931,13 @@ def vec_max(a):
 
     Returns
     -------
-    scalar
-        The maximum value in the vector. If the vector is complex then
-        the elements are compared by magnitude and phase.
+    scalar, None
+        The maximum value in the vector, or None if the vector is empty
 
     """
+    if vec_empty(a):
+        return None
+
     _, fmax = _utl.get_min_max_f(a)
 
     # mx = a[0]
@@ -942,11 +960,14 @@ def vec_min_max(a):
 
     Returns
     -------
-    tuple
-        A 2-tuple with the minimum and maximum value. If the vector
-        is complex then the elements are compared by magnitude and phase.
+    tuple, None
+        A 2-tuple with the minimum and maximum value,
+        or None if the vector is empty
 
     """
+    if vec_empty(a):
+        return None
+
     fmin, fmax = _utl.get_min_max_f(a)
 
     # return _fun.reduce(
