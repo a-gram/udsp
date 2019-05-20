@@ -88,21 +88,90 @@ class Signal(object):
         return self.nsamples
 
     def __add__(self, other):
+        """
+        Add another signal or scalar to this signal
+
+        Parameters
+        ----------
+        other: Signal, scalar
+
+        Returns
+        -------
+        Signal
+
+        """
         raise NotImplementedError
 
     def __sub__(self, other):
+        """
+        Subtract another signal or scalar from this signal
+
+        Parameters
+        ----------
+        other: Signal, scalar
+
+        Returns
+        -------
+        Signal
+
+        """
         raise NotImplementedError
 
     def __mul__(self, other):
+        """
+        Multiply this signal by another signal or scalar
+
+        Parameters
+        ----------
+        other: Signal, scalar
+
+        Returns
+        -------
+        Signal
+
+        """
         raise NotImplementedError
 
     def __truediv__(self, other):
+        """
+        Divide this signal by another signal or scalar
+
+        Parameters
+        ----------
+        other: Signal, scalar
+
+        Returns
+        -------
+        Signal
+
+        """
         raise NotImplementedError
 
     def __neg__(self):
+        """
+        Negate this signal
+
+        Returns
+        -------
+        Signal
+
+        """
         raise NotImplementedError
 
     def __pow__(self, power):
+        """
+        Compute the exponentiation of this signal
+
+        Parameters
+        ----------
+        power: scalar
+
+        Returns
+        -------
+        Signal
+
+
+        """
         raise NotImplementedError
 
     # TODO comparison (equality, "closeness")
@@ -382,7 +451,8 @@ class Signal(object):
         ----------
         crange: tuple
             A n-tuple of pairs (cs, ce) indicating the start and end
-            points of the clipped region along each dimension.
+            points of the clipped region along each dimension. The
+            clipped region includes the end point.
 
         Returns
         -------
@@ -431,7 +501,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
@@ -442,7 +512,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
@@ -453,7 +523,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
@@ -464,7 +534,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
@@ -475,7 +545,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
@@ -486,7 +556,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
@@ -497,7 +567,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
@@ -508,7 +578,7 @@ class Signal(object):
 
         Returns
         -------
-        float
+        float, None
 
         """
         raise NotImplementedError
