@@ -21,7 +21,7 @@ class Signal1D(Signal):
     def __init__(self,
                  y=None,
                  x=None,
-                 length=0,
+                 length=None,
                  yunits="",
                  xunits="",
                  **kwargs):
@@ -78,10 +78,6 @@ class Signal1D(Signal):
         return asignal
 
     @property
-    def nsamples(self):
-        return len(self._Y)
-
-    @property
     def dim(self):
         return len(self._Y),
 
@@ -106,13 +102,13 @@ class Signal1D(Signal):
                 "X and Y must be the same size."
             )
 
-        if y and not x:
-            x = _mtx.vec_new(len(y), lambda n: n)
-
         if length is not None and length < 0:
             raise ValueError(
                 "Lengths can't be negative."
             )
+
+        if y and not x:
+            x = _mtx.vec_new(len(y), lambda n: n)
 
         self._length = length or len(x)
         self._sfreq = len(x) / self._length
@@ -140,6 +136,9 @@ class Signal1D(Signal):
 
     def pad(self, p, value=0):
 
+        if self.is_empty():
+            return Signal1D()
+
         if min(p) < 0:
             raise ValueError(
                 "Negative padding values in {}".format(p)
@@ -165,6 +164,9 @@ class Signal1D(Signal):
         return self.pad((0, dl))
 
     def clip(self, crange):
+
+        if self.is_empty():
+            return Signal1D()
 
         if min(crange) < 0:
             raise ValueError(
@@ -211,24 +213,34 @@ class Signal1D(Signal):
 
     def power(self):
 
+        if self.is_empty():
+            return None
         return self.energy() / len(self)
 
     def rms(self):
 
+        if self.is_empty():
+            return None
         return _math.sqrt(self.power())
 
     def mean(self):
 
+        if self.is_empty():
+            return None
         return _mtx.vec_sum(self._Y) / len(self)
 
     def variance(self):
 
+        if self.is_empty():
+            return None
         u = self.mean()
         s = _mtx.vec_sum(_mtx.vec_pow(_mtx.vec_sub(self._Y, u), 2))
         return s / len(self)
 
     def stddev(self):
 
+        if self.is_empty():
+            return None
         return _math.sqrt(self.variance())
 
     def mse(self, signal):
@@ -298,21 +310,21 @@ class Signal2D(Signal):
     def __init__(self,
                  y=None,
                  x=None,
-                 length=(0, 0),
+                 length=None,
                  yunits=("", ""),
                  xunits=("", ""),
                  **kwargs):
 
         super().__init__(**kwargs)
 
-        self._Y = y
-        self._X = x
-        self._length = length
-        self.yunits = yunits
-        self.xunits = xunits
-
         if y or x:
             self.set(y, x, length)
+        else:
+            self._Y = []
+            self._X = []
+            self._length = (0, 0)
+        self.yunits = yunits
+        self.xunits = xunits
 
     def __add__(self, other):
 
@@ -355,11 +367,9 @@ class Signal2D(Signal):
         return asignal
 
     @property
-    def nsamples(self):
-        return len(self._Y) * len(self._Y[0])
-
-    @property
     def dim(self):
+        if self.is_empty():
+            return 0, 0
         return len(self._Y), len(self._Y[0])
 
     @property
@@ -382,6 +392,12 @@ class Signal2D(Signal):
             raise ValueError(
                 "X and Y must be the same size."
             )
+
+        if length is not None:
+            if min(length) < 0:
+                raise ValueError("Lengths can't be negative.")
+            if not all(length):
+                raise ValueError("All lengths must be > 0")
 
         Ny, My = len(y), len(y[0])
 
@@ -413,6 +429,9 @@ class Signal2D(Signal):
         return spec()
 
     def pad(self, p, value=0):
+
+        if self.is_empty():
+            return Signal2D()
 
         if min(p[0]) < 0 or min(p[1]) < 0:
             raise ValueError(
@@ -489,6 +508,9 @@ class Signal2D(Signal):
         return self.pad(((0, dl1), (0, dl2)))
 
     def clip(self, crange):
+
+        if self.is_empty():
+            return Signal2D()
 
         if min(crange[0]) < 0 or min(crange[1]) < 0:
             raise ValueError(
