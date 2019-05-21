@@ -55,18 +55,17 @@ def mat_copy(a):
         A copy of the given matrix
 
     """
-    if mat_empty(a):
+    if mat_is_void(a):
         return a
 
     return [row.copy() for row in a]
 
 
-def mat_empty(a):
+def mat_is_void(a):
     """
-    Check whether a given matrix is empty
+    Check whether a given matrix is void
 
-    A matrix is considered "empty" if it is None or has no
-    elements.
+    A matrix is considered as "void" if it is None or []
 
     Parameters
     ----------
@@ -76,10 +75,10 @@ def mat_empty(a):
     Returns
     -------
     bool
-        True if the matrix is empty, False otherwise
+        True if the matrix is void, False otherwise
 
     """
-    return a is None or len(a) == 0 or len(a[0]) == 0
+    return a is None or len(a) == 0
 
 
 def mat_dim(a):
@@ -574,6 +573,9 @@ def mat_submat(a, r):
     """
     assert len(r) == 2 and len(r[0]) == 2 and len(r[1]) == 2
     assert min(r[0]) >= 0 and min(r[1]) >= 0
+
+    if mat_is_void(a):
+        return []
 
     nmin, nmax = 0, len(a) - 1
     mmin, mmax = 0, len(a[0]) - 1

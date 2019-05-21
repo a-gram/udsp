@@ -213,35 +213,30 @@ class Signal1D(Signal):
 
     def power(self):
 
-        if self.is_empty():
-            return None
-        return self.energy() / len(self)
+        if not self.is_empty():
+            return self.energy() / len(self)
 
     def rms(self):
 
-        if self.is_empty():
-            return None
-        return _math.sqrt(self.power())
+        if not self.is_empty():
+            return _math.sqrt(self.power())
 
     def mean(self):
 
-        if self.is_empty():
-            return None
-        return _mtx.vec_sum(self._Y) / len(self)
+        if not self.is_empty():
+            return _mtx.vec_sum(self._Y) / len(self)
 
     def variance(self):
 
-        if self.is_empty():
-            return None
-        u = self.mean()
-        s = _mtx.vec_sum(_mtx.vec_pow(_mtx.vec_sub(self._Y, u), 2))
-        return s / len(self)
+        if not self.is_empty():
+            u = self.mean()
+            s = _mtx.vec_sum(_mtx.vec_pow(_mtx.vec_sub(self._Y, u), 2))
+            return s / len(self)
 
     def stddev(self):
 
-        if self.is_empty():
-            return None
-        return _math.sqrt(self.variance())
+        if not self.is_empty():
+            return _math.sqrt(self.variance())
 
     def mse(self, signal):
 
@@ -269,7 +264,7 @@ class Signal1D(Signal):
         )
         return e / len(self)
 
-    def norm(self, imin=0, imax=1):
+    def normalize(self, imin=0, imax=1):
 
         if imin >= imax:
             raise ValueError(
@@ -509,9 +504,6 @@ class Signal2D(Signal):
 
     def clip(self, crange):
 
-        if self.is_empty():
-            return Signal2D()
-
         if min(crange[0]) < 0 or min(crange[1]) < 0:
             raise ValueError(
                 "Negative values in clipping ranges {}".format(crange)
@@ -575,31 +567,37 @@ class Signal2D(Signal):
 
     def energy(self):
 
-        return _mtx.mat_sum(_mtx.mat_mul(self._Y, self._Y))
+        if not self.is_empty():
+            return _mtx.mat_sum(_mtx.mat_mul(self._Y, self._Y))
 
     def power(self):
 
-        return self.energy() / len(self)
+        if not self.is_empty():
+            return self.energy() / len(self)
 
     def rms(self):
 
-        return _math.sqrt(self.power())
+        if not self.is_empty():
+            return _math.sqrt(self.power())
 
     def mean(self):
 
-        return _mtx.mat_sum(self._Y) / len(self)
+        if not self.is_empty():
+            return _mtx.mat_sum(self._Y) / len(self)
 
     def variance(self):
 
-        u = self.mean()
-        s = _mtx.mat_sum(
-              _mtx.mat_pow(_mtx.mat_sub(self._Y, u), 2)
-        )
-        return s / len(self)
+        if not self.is_empty():
+            u = self.mean()
+            s = _mtx.mat_sum(
+                  _mtx.mat_pow(_mtx.mat_sub(self._Y, u), 2)
+            )
+            return s / len(self)
 
     def stddev(self):
 
-        return _math.sqrt(self.variance())
+        if not self.is_empty():
+            return _math.sqrt(self.variance())
 
     def mse(self, signal):
 
@@ -627,7 +625,7 @@ class Signal2D(Signal):
         )
         return e / len(self)
 
-    def norm(self, imin=0, imax=1):
+    def normalize(self, imin=0, imax=1):
 
         if imin >= imax:
             raise ValueError(

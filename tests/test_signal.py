@@ -1,5 +1,4 @@
 import unittest
-import numpy as np
 
 from udsp.signal.base import Signal
 from udsp.signal.ndim import Signal1D, Signal2D
@@ -390,7 +389,7 @@ class Signal1DTestCase(unittest.TestCase):
 
     def test_signal1d_to_real(self):
 
-        s1 = Signal1D(y=[1 - 1j, 1 + 2j, -3j, 5])
+        s1 = Signal1D(y=[1-1j, 1+2j, -3j, 5])
         s2 = Signal1D(y=[0, -3, 1])
         s3 = Signal1D(y=[])
         res1 = [1, 1, 0, 5]
@@ -407,31 +406,31 @@ class Signal1DTestCase(unittest.TestCase):
     def test_signal1d_min(self):
 
         s1 = Signal1D(y=[10, -3, 4, 1, -3.1])
-        s2 = Signal1D(y=[3 - 1j, 1 + 2j, -3j, 5])
+        s2 = Signal1D(y=[3-1j, 1+2j, -3j, 5])
         s3 = Signal1D(y=[1])
         s4 = Signal1D(y=[])
-        s5 = Signal1D(y=[3, 1 + 2j, -3j, 5])
+        s5 = Signal1D(y=[3, 1+2j, -3j, 5])
         res1 = -3.1
-        res2 = 1 + 2j
+        res2 = 1+2j
         res3 = 1
         r1 = s1.min()
         r2 = s2.min()
         r3 = s3.min()
         r4 = s4.min()
-        with self.assertRaises(TypeError):
-            s5.min()  # undefined
         self.assertEqual(r1, res1)
         self.assertEqual(r2, res2)
         self.assertEqual(r3, res3)
         self.assertIsNone(r4)
+        with self.assertRaises(TypeError):
+            s5.min()  # undefined
 
     def test_signal1d_max(self):
 
         s1 = Signal1D(y=[10, -3, 4, 1, -3.1])
-        s2 = Signal1D(y=[3 - 1j, 1 + 2j, -3j, 5])
+        s2 = Signal1D(y=[3-1j, 1+2j, -3j, 5])
         s3 = Signal1D(y=[1])
         s4 = Signal1D(y=[])
-        s5 = Signal1D(y=[3, 1 + 2j, -3j, 5])
+        s5 = Signal1D(y=[3, 1+2j, -3j, 5])
         res1 = 10
         res2 = 5
         res3 = 1
@@ -439,12 +438,12 @@ class Signal1DTestCase(unittest.TestCase):
         r2 = s2.max()
         r3 = s3.max()
         r4 = s4.max()
-        with self.assertRaises(TypeError):
-            s5.max()  # undefined
         self.assertEqual(r1, res1)
         self.assertEqual(r2, res2)
         self.assertEqual(r3, res3)
         self.assertIsNone(r4)
+        with self.assertRaises(TypeError):
+            s5.max()  # undefined
 
     def test_signal1d_energy(self):
 
@@ -509,13 +508,13 @@ class Signal1DTestCase(unittest.TestCase):
     def test_signal1d_mae(self):
         pass
 
-    def test_signal1d_norm(self):
+    def test_signal1d_normalize(self):
 
         signal = Signal1D(y=[1, 2, 3, 4, 5])
-        s1 = signal.norm()
-        s2 = signal.norm(-1, 1)
-        s3 = signal.norm(10, 100)
-        s4 = signal.norm(0.5, 1.5)
+        s1 = signal.normalize()
+        s2 = signal.normalize(-1, 1)
+        s3 = signal.normalize(10, 100)
+        s4 = signal.normalize(0.5, 1.5)
         self.assertEqual(s1.get()[0], 0)
         self.assertEqual(s1.get()[4], 1)
         self.assertEqual(s2.get()[0], -1)
@@ -532,10 +531,6 @@ class Signal1DTestCase(unittest.TestCase):
 
 
 class Signal2DTestCase(unittest.TestCase):
-
-    def assertArray2dEqual(self, a, b):
-        equal = map(lambda v: self.assertListEqual(v[0], v[1]), zip(a, b))
-        return all(equal)
 
     def test_signal2d__init__(self):
 
@@ -562,8 +557,8 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertEqual(signal.ndim, 2)
         self.assertIsInstance(signal.plot, Plotter2D)
         y, x = signal.get(alls=True)
-        self.assertArray2dEqual(y, data)
-        self.assertArray2dEqual(x, datax)
+        self.assertListEqual(y, data)
+        self.assertListEqual(x, datax)
         self.assertEqual(signal.domain, Transforms.TIMESPACE_DOMAIN)
         with self.assertRaises(ValueError):
             Signal2D(x=datax)
@@ -598,9 +593,9 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertIsInstance(r1, Signal)
         self.assertIsInstance(r2, Signal)
         self.assertIsInstance(r3, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
-        self.assertArray2dEqual(r3.get(), res3)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
         with self.assertRaises(ValueError):
             s0 + s2
 
@@ -623,9 +618,9 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertIsInstance(r1, Signal)
         self.assertIsInstance(r2, Signal)
         self.assertIsInstance(r3, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
-        self.assertArray2dEqual(r3.get(), res3)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
         with self.assertRaises(ValueError):
             s0 - s2
 
@@ -648,9 +643,9 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertIsInstance(r1, Signal)
         self.assertIsInstance(r2, Signal)
         self.assertIsInstance(r3, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
-        self.assertArray2dEqual(r3.get(), res3)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
         with self.assertRaises(ValueError):
             s0 * s2
 
@@ -673,9 +668,9 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertIsInstance(r1, Signal)
         self.assertIsInstance(r2, Signal)
         self.assertIsInstance(r3, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
-        self.assertArray2dEqual(r3.get(), res3)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
         with self.assertRaises(ValueError):
             s0 / s2
 
@@ -695,9 +690,9 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertIsInstance(r1, Signal)
         self.assertIsInstance(r2, Signal)
         self.assertIsInstance(r3, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
-        self.assertArray2dEqual(r3.get(), res3)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
 
     def test_signal2d__pow__(self):
 
@@ -715,9 +710,9 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertIsInstance(r1, Signal)
         self.assertIsInstance(r2, Signal)
         self.assertIsInstance(r3, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
-        self.assertArray2dEqual(r3.get(), res3)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
 
     def test_signal2d_properties(self):
 
@@ -771,15 +766,15 @@ class Signal2DTestCase(unittest.TestCase):
                   [(1, 0), (1, 1), (1, 2)]]
         signal = Signal2D()
         signal.set(data)
-        self.assertArray2dEqual(signal.get(), data)
-        self.assertArray2dEqual(signal.get(alls=True)[0], data)
-        self.assertArray2dEqual(signal.get(alls=True)[1], datax)
+        self.assertListEqual(signal.get(), data)
+        self.assertListEqual(signal.get(alls=True)[0], data)
+        self.assertListEqual(signal.get(alls=True)[1], datax)
         self.assertEqual(signal.length, (len(data), len(data[0])))
         self.assertEqual(signal.sfreq, 1)
         signal.set(data, datax2)
-        self.assertArray2dEqual(signal.get(), data)
-        self.assertArray2dEqual(signal.get(alls=True)[0], data)
-        self.assertArray2dEqual(signal.get(alls=True)[1], datax2)
+        self.assertListEqual(signal.get(), data)
+        self.assertListEqual(signal.get(alls=True)[0], data)
+        self.assertListEqual(signal.get(alls=True)[1], datax2)
         with self.assertRaises(ValueError):
             signal.set([])
         with self.assertRaises(ValueError):
@@ -900,7 +895,7 @@ class Signal2DTestCase(unittest.TestCase):
             s.append(signal.pad(p))
         for sig, res in zip(s, res):
             self.assertIsInstance(sig, Signal)
-            self.assertArray2dEqual(sig.get(), res)
+            self.assertListEqual(sig.get(), res)
         with self.assertRaises(ValueError):
             signal.pad(((-2, 2), (1, 1)))
         with self.assertRaises(ValueError):
@@ -942,7 +937,7 @@ class Signal2DTestCase(unittest.TestCase):
         for p, pr in zip(pad, padder):
             s.append(signal.pad(p, pr))
         for sig, res in zip(s, res):
-            self.assertArray2dEqual(sig.get(), res)
+            self.assertListEqual(sig.get(), res)
 
         signal = Signal2D()
         self.assertListEqual(signal.pad(pad[0]).get(), [])
@@ -964,8 +959,8 @@ class Signal2DTestCase(unittest.TestCase):
         r1 = s1.zero_pad_to(s0)
         r2 = s2.zero_pad_to(s1)
         self.assertIsInstance(r1, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
         with self.assertRaises(ValueError):
             s0.zero_pad_to(s1)
 
@@ -994,11 +989,11 @@ class Signal2DTestCase(unittest.TestCase):
         r6 = signal.clip(((4, 4), (3, 4)))
         r7 = signal.clip(((0, 2), (3, 5)))
         self.assertIsInstance(r1, Signal)
-        self.assertArray2dEqual(r1.get(), res1)
-        self.assertArray2dEqual(r2.get(), res2)
-        self.assertArray2dEqual(r3.get(), res3)
-        self.assertArray2dEqual(r4.get(), res4)
-        self.assertArray2dEqual(r5.get(), res5)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
+        self.assertListEqual(r4.get(), res4)
+        self.assertListEqual(r5.get(), res5)
         self.assertListEqual(r6.get(), res6)
         self.assertListEqual(r7.get(), res7)
         with self.assertRaises(ValueError):
@@ -1010,3 +1005,216 @@ class Signal2DTestCase(unittest.TestCase):
         signal = Signal2D()
         r1 = signal.clip(((1, 2), (1, 2)))
         self.assertListEqual(r1.get(), [])
+
+    def test_signal2d_flip(self):
+
+        signal = Signal2D(y=[[1, 2, 3],
+                             [4, 5, 6],
+                             [7, 8, 9]])
+        res1 = [[9, 8, 7],
+                [6, 5, 4],
+                [3, 2, 1]]
+        res2 = [[7, 8, 9],
+                [4, 5, 6],
+                [1, 2, 3]]
+        res3 = [[3, 2, 1],
+                [6, 5, 4],
+                [9, 8, 7]]
+        res4 = [[9, 8, 7],
+                [6, 5, 4],
+                [3, 2, 1]]
+        r1 = signal.flip()
+        r2 = signal.flip((1,))
+        r3 = signal.flip((2,))
+        r4 = signal.flip((1, 2))
+        self.assertIsInstance(r1, Signal)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
+        self.assertListEqual(r4.get(), res4)
+        signal = Signal2D()
+        r1 = signal.flip()
+        self.assertListEqual(r1.get(), [])
+
+    def test_signal2d_to_real(self):
+
+        s1 = Signal2D(y=[[1-1j, 1+2j],
+                         [-3j,  5]])
+        s2 = Signal2D(y=[[0, -3],
+                         [2,  1]])
+        s3 = Signal2D()
+        res1 = [[1, 1], [0, 5]]
+        res2 = [[0,-3], [2, 1]]
+        res3 = []
+        r1 = s1.to_real()
+        r2 = s2.to_real()
+        r3 = s3.to_real()
+        self.assertIsInstance(r1, Signal)
+        self.assertListEqual(r1.get(), res1)
+        self.assertListEqual(r2.get(), res2)
+        self.assertListEqual(r3.get(), res3)
+
+    def test_signal2d_min(self):
+
+        s1 = Signal2D(y=[[10, -3],
+                         [4, -3.1]])
+        s2 = Signal2D(y=[[3-1j, 1+2j],
+                         [-3j, 5]])
+        s3 = Signal2D(y=[[1]])
+        s4 = Signal2D(y=[])
+        s5 = Signal2D(y=[[3, 1+2j],
+                         [3j, 5]])
+        res1 = -3.1
+        res2 = 1+2j
+        res3 = 1
+        r1 = s1.min()
+        r2 = s2.min()
+        r3 = s3.min()
+        r4 = s4.min()
+        self.assertEqual(r1, res1)
+        self.assertEqual(r2, res2)
+        self.assertEqual(r3, res3)
+        self.assertIsNone(r4)
+        with self.assertRaises(TypeError):
+            s5.min()  # undefined
+
+    def test_signal2d_max(self):
+
+        s1 = Signal2D(y=[[10, -3],
+                         [4, -3.1]])
+        s2 = Signal2D(y=[[3-1j, 1+2j],
+                         [-3j, 5]])
+        s3 = Signal2D(y=[[1]])
+        s4 = Signal2D(y=[])
+        s5 = Signal2D(y=[[3, 1+2j],
+                         [3j, 5]])
+        res1 = 10
+        res2 = 5
+        res3 = 1
+        r1 = s1.max()
+        r2 = s2.max()
+        r3 = s3.max()
+        r4 = s4.max()
+        self.assertEqual(r1, res1)
+        self.assertEqual(r2, res2)
+        self.assertEqual(r3, res3)
+        self.assertIsNone(r4)
+        with self.assertRaises(TypeError):
+            s5.max()  # undefined
+
+    def test_signal2d_energy(self):
+
+        s1 = Signal2D(y=[[1, -2, 3],
+                         [4, 5, 6],
+                         [7, 8, -9]])
+        s2 = Signal2D(y=[[0, 0],
+                         [0, 0],
+                         [0, 0]])
+        s3 = Signal2D(y=[])
+        s4 = Signal2D(y=[[-2]])
+        self.assertEqual(s1.energy(), 285)
+        self.assertEqual(s2.energy(), 0)
+        self.assertIsNone(s3.energy())
+        self.assertEqual(s4.power(), 4)
+
+    def test_signal2d_power(self):
+
+        s1 = Signal2D(y=[[1, -2, 3],
+                         [4, 5, 6],
+                         [7, 8, -9]])
+        s2 = Signal2D(y=[[0, 0],
+                         [0, 0],
+                         [0, 0]])
+        s3 = Signal2D(y=[])
+        s4 = Signal2D(y=[[-2]])
+        self.assertAlmostEqual(s1.power(), 31.6666, places=3)
+        self.assertEqual(s2.power(), 0)
+        self.assertIsNone(s3.power())
+        self.assertEqual(s4.power(), 4)
+
+    def test_signal2d_rms(self):
+
+        s1 = Signal2D(y=[[1, -2, 3],
+                         [4, 5, 6],
+                         [7, 8, -9]])
+        s2 = Signal2D(y=[[0, 0],
+                         [0, 0],
+                         [0, 0]])
+        s3 = Signal2D(y=[])
+        s4 = Signal2D(y=[[-2]])
+        self.assertAlmostEqual(s1.rms(), 5.6273, places=3)
+        self.assertEqual(s2.rms(), 0)
+        self.assertIsNone(s3.rms())
+        self.assertEqual(s4.rms(), 2)
+
+    def test_signal2d_mean(self):
+
+        s1 = Signal2D(y=[[1, -2, 3],
+                         [4, 5, 6],
+                         [7, 8, -9]])
+        s2 = Signal2D(y=[[0, 0],
+                         [0, 0],
+                         [0, 0]])
+        s3 = Signal2D(y=[])
+        s4 = Signal2D(y=[[-2]])
+        self.assertAlmostEqual(s1.mean(), 2.5555, places=3)
+        self.assertEqual(s2.mean(), 0)
+        self.assertIsNone(s3.mean())
+        self.assertEqual(s4.mean(), -2)
+
+    def test_signal2d_variance(self):
+
+        s1 = Signal2D(y=[[1, -2, 3],
+                         [4, 5, 6],
+                         [7, 8, -9]])
+        s2 = Signal2D(y=[[0, 0],
+                         [0, 0],
+                         [0, 0]])
+        s3 = Signal2D(y=[])
+        s4 = Signal2D(y=[[-2]])
+        self.assertAlmostEqual(s1.variance(), 25.1358, places=3)
+        self.assertEqual(s2.variance(), 0)
+        self.assertIsNone(s3.variance())
+        self.assertEqual(s4.variance(), 0)
+
+    def test_signal2d_stddev(self):
+
+        s1 = Signal2D(y=[[1, -2, 3],
+                         [4, 5, 6],
+                         [7, 8, -9]])
+        s2 = Signal2D(y=[[0, 0],
+                         [0, 0],
+                         [0, 0]])
+        s3 = Signal2D(y=[])
+        s4 = Signal2D(y=[[-2]])
+        self.assertAlmostEqual(s1.stddev(), 5.0135, places=3)
+        self.assertEqual(s2.stddev(), 0)
+        self.assertIsNone(s3.stddev())
+        self.assertEqual(s4.stddev(), 0)
+
+    def test_signal2d_mse(self):
+        pass
+
+    def test_signal2d_rmse(self):
+        pass
+
+    def test_signal2d_mae(self):
+        pass
+
+    def test_signal2d_normalize(self):
+
+        signal = Signal2D(y=[[1, 2, 3],
+                             [4, 5, 6],
+                             [7, 8, 9]])
+        s1 = signal.normalize()
+        s2 = signal.normalize(-1, 1)
+        s3 = signal.normalize(10, 100)
+        s4 = signal.normalize(0.5, 1.5)
+        self.assertEqual(s1.get()[0][0], 0)
+        self.assertEqual(s1.get()[2][2], 1)
+        self.assertEqual(s2.get()[0][0], -1)
+        self.assertEqual(s2.get()[2][2], 1)
+        self.assertEqual(s3.get()[0][0], 10)
+        self.assertEqual(s3.get()[2][2], 100)
+        self.assertEqual(s4.get()[0][0], 0.5)
+        self.assertEqual(s4.get()[2][2], 1.5)

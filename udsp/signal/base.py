@@ -634,7 +634,7 @@ class Signal(object):
         """
         raise NotImplementedError
 
-    def norm(self, imin=0, imax=1):
+    def normalize(self, imin=0, imax=1):
         """
         Normalizes the signal in a specified interval
 
