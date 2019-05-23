@@ -612,6 +612,98 @@ def mat_submat(a, r):
     return b
 
 
+def mat_submat_copy(a, b, offset, inplace=True):
+    """
+
+    Parameters
+    ----------
+    a: list[list]
+        A matrix of scalar values represnting the main matrix
+    b: list[list]
+        A matrix of scalar values representing the sub-matrix
+    offset: tuple
+        A 2-tuple (row, col) indicating the offset within the
+        main matrix at which to copy the submatrix
+    inplace: bool
+        Indicates whether to modify the original matrix or make
+        a copy of it
+
+    Returns
+    -------
+    list[list]
+        A matrix with the sub-matrix copied onto it
+
+    """
+    if min(offset) < 0:
+        raise ValueError("Negative offsets not allowed")
+    if mat_is_void(a):
+        return []
+    if mat_is_void(b):
+        return a
+
+    m = a if inplace else mat_copy(a)
+    arows, acols = mat_dim(m)
+    brows, bcols = mat_dim(b)
+    no, co = offset
+    if (no, co) >= (arows, acols):
+        return m
+
+    for row in b:
+        blen = min(acols - co, bcols)
+        m[no][co: co + blen] = row[:blen]
+        no += 1
+        if no >= arows:
+            break
+    return m
+
+
+def mat_flatten(a, dim=1, inverted=False):
+    """
+    Flattens (vectorizes) a matrix
+
+    Parameters
+    ----------
+    a: list[list]
+        A matrix of scalar values
+    dim: {1, 2}
+        The dimension along with to flatten the given matrix. If
+        it's 1 then the matrix is flattened using the rows, that is
+        the first row becomes the first segment of the vector, the
+        second row the second segment, and so on. If it's 2 then
+        it is flattened using the columns.
+    inverted: bool
+        Indicates whether to invert the order of the flattening.
+        If False (default) then the order is from first row (column)
+        to last. If True then the order is from last row (column)
+        to first.
+
+    Returns
+    -------
+    list[]
+        A vector representing the flattened matrix
+
+    """
+    if dim not in (1, 2):
+        raise ValueError("The dimension must be either 1 or 2")
+    if mat_is_void(a):
+        return []
+
+    nrows, ncols = mat_dim(a)
+    vec = [None] * (nrows * ncols)
+
+    if dim == 1:
+        it = reversed(a) if inverted else a
+        for vo, row in enumerate(it):
+            dr = vo * ncols
+            vec[dr: dr + ncols] = row[::]
+    else:
+        it = [[*reversed(row)] for row in a] if inverted else a
+        for vo, col in enumerate(zip(*it)):
+            dr = vo * nrows
+            vec[dr: dr + nrows] = col[::]
+    return vec
+
+
 def mat_to(newtype, a):
     """
     Converts the elements of a matrix to a specified scalar type
