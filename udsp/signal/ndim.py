@@ -428,20 +428,28 @@ class Signal2D(Signal):
         if self.is_empty():
             return Signal2D()
 
-        if min(p[0]) < 0 or min(p[1]) < 0:
-            raise ValueError(
-                "Negative padding values: {}".format(p)
-            )
+        pt, pb = p[0]
+        pl, pr = p[1]
 
-        pads1, pads2 = sum(p[0]), sum(p[1])
-        dim1, dim2 = len(self._Y) + pads1, len(self._Y[0]) + pads2
+        Yp = _mtx.mat_pad(self._Y, (pt, pb, pl, pr), value)
+        Xp = _mtx.mat_pad(self._X, (pt, pb, pl, pr), value)
 
-        Yp = _mtx.mat_new(dim1, dim2, value)
-        Xp = _mtx.mat_new(dim1, dim2, None)
-
-        for n, rows in enumerate(zip(self._Y, self._X)):
-            Yp[p[0][0] + n][p[1][0]: dim2 - p[1][1]] = rows[0]
-            Xp[p[0][0] + n][p[1][0]: dim2 - p[1][1]] = rows[1]
+        # Solution 1
+        # ----------
+        # if min(p[0]) < 0 or min(p[1]) < 0:
+        #     raise ValueError(
+        #         "Negative padding values: {}".format(p)
+        #     )
+        #
+        # pads1, pads2 = sum(p[0]), sum(p[1])
+        # dim1, dim2 = len(self._Y) + pads1, len(self._Y[0]) + pads2
+        #
+        # Yp = _mtx.mat_new(dim1, dim2, value)
+        # Xp = _mtx.mat_new(dim1, dim2, None)
+        #
+        # for n, rows in enumerate(zip(self._Y, self._X)):
+        #     Yp[p[0][0] + n][p[1][0]: dim2 - p[1][1]] = rows[0]
+        #     Xp[p[0][0] + n][p[1][0]: dim2 - p[1][1]] = rows[1]
 
         # Solution 2
         # ----------

@@ -413,6 +413,8 @@ class Signal(object):
         p: tuple
             A n-tuple of pairs (ps, pe) indicating the padding size at the
             start and at the end of the signal on each of the n dimensions
+            (e.g. for 1D signals 1 pair to pad on the left/right, for 2D
+            signals 2 pairs to pad on the top/bottom and left/right)
         v: scalar, optional
             A scalar value used for the padding (default is 0)
 

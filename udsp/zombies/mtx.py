@@ -98,6 +98,8 @@ def mat_dim(a):
         A 2-tuple (rows, cols)
 
     """
+    if mat_is_void(a):
+        return ()
     return len(a), len(a[0])
 
 
@@ -136,6 +138,22 @@ def mat_dims_equal(a, b, full_check=False):
         # return cols_equal
 
 
+def is_mat(a):
+    """
+    Check whether the given argument is a matrix
+
+    Parameters
+    ----------
+    a
+
+    Returns
+    -------
+    bool
+
+    """
+    return type(a) is list and len(a) and type(a[0]) is list
+
+
 def dot_product(a, b):
     """
     Computes the dot product of two vectors
@@ -152,7 +170,7 @@ def dot_product(a, b):
     float, None
 
     """
-    if vec_empty(a) or vec_empty(b):
+    if vec_is_void(a) or vec_is_void(b):
         return None
 
     if len(a) != len(b):
@@ -176,8 +194,8 @@ def mat_product(a, b):
     ----------
     a: list[list]
         A matrix of scalar values
-    b: list[list]
-        A matrix of scalar values
+    b: list[list], list[]
+        A matrix of scalar values or a vector
 
     Returns
     -------
@@ -185,20 +203,31 @@ def mat_product(a, b):
         A matrix product of a and b
 
     """
+    if mat_is_void(a) or mat_is_void(b):
+        return []
     if len(a[0]) != len(b):
         raise ValueError(
             "Incompatible matrix sizes: ncols(a) != nrows(b)"
         )
+
     # TODO: there is a nice matrix multiplication operator '@'
     #       that's built-in and is (i believe) faster
 
-    dim1_a, dim2_a = range(len(a)), range(len(a[0]))
-    dim1_b, dim2_b = range(len(b)), range(len(b[0]))
+    # arows, acols = range(len(a)), range(len(a[0]))
+    # brows, bcols = range(len(b)), range(len(b[0]))
+    #
+    # bt = [[b[n][m] for n in brows] for m in bcols]
+    #
+    # return [[dot_product(a[n], bt[m]) for m in bcols]
+    #                                   for n in arows]
 
-    bt = [[b[m][n] for m in dim1_b] for n in dim2_b]
-
-    return [[dot_product(a[n], bt[m]) for m in dim2_b]
-                                      for n in dim1_a]
+    # mat-mat product
+    if is_mat(b):
+        return [[dot_product(row, col) for col in zip(*b)]
+                                       for row in a]
+    # mat-vector product
+    else:
+        return [dot_product(row, b) for row in a]
 
 
 def mat_add(a, b):
@@ -571,11 +600,12 @@ def mat_submat(a, r):
         The sub-matrix
 
     """
-    assert len(r) == 2 and len(r[0]) == 2 and len(r[1]) == 2
-    assert min(r[0]) >= 0 and min(r[1]) >= 0
-
     if mat_is_void(a):
         return []
+    if (not r or len(r) != 2 or len(r[0]) != 2 or len(r[1]) != 2
+              or min(r[0]) < 0 or min(r[1]) < 0):
+        raise ValueError("Invalid sub matrix dimensions. Must be a "
+                         "tuple with 2 pairs ((cs, ce), (rs, re)).")
 
     nmin, nmax = 0, len(a) - 1
     mmin, mmax = 0, len(a[0]) - 1
@@ -634,12 +664,12 @@ def mat_submat_copy(a, b, offset, inplace=True):
         A matrix with the sub-matrix copied onto it
 
     """
-    if min(offset) < 0:
-        raise ValueError("Negative offsets not allowed")
     if mat_is_void(a):
         return []
     if mat_is_void(b):
         return a
+    if not offset or min(offset) < 0:
+        raise ValueError("Invalid offset. Must be a 2-tuple of int >=0")
 
     m = a if inplace else mat_copy(a)
     arows, acols = mat_dim(m)
@@ -657,7 +687,7 @@ def mat_submat_copy(a, b, offset, inplace=True):
     return m
 
 
-def mat_flatten(a, dim=1, inverted=False):
+def mat_flatten(a, mode=(1, False)):
     """
     Flattens (vectorizes) a matrix
 
@@ -665,43 +695,143 @@ def mat_flatten(a, dim=1, inverted=False):
     ----------
     a: list[list]
         A matrix of scalar values
-    dim: {1, 2}
-        The dimension along with to flatten the given matrix. If
-        it's 1 then the matrix is flattened using the rows, that is
-        the first row becomes the first segment of the vector, the
-        second row the second segment, and so on. If it's 2 then
-        it is flattened using the columns.
-    inverted: bool
-        Indicates whether to invert the order of the flattening.
-        If False (default) then the order is from first row (column)
-        to last. If True then the order is from last row (column)
-        to first.
+    mode: tuple
+        A 2-tuple in the form (dim, inverted) indicating how to
+        perform the flattening. The 'dim' value must be either 1
+        or 2, where 1 means that the matrix is flattened using the
+        first dimension (rows) starting from the first. If it's 2
+        then it is flattened using the second dimension (columns)
+        starting from the first. The 'inverted' value indicates
+        whether to invert the order of the flattening, that is
+        starting from the last row/column.
 
     Returns
     -------
     list[]
-        A vector representing the flattened matrix
+        A vectorized form of the given matrix
 
     """
-    if dim not in (1, 2):
-        raise ValueError("The dimension must be either 1 or 2")
     if mat_is_void(a):
         return []
+    if len(mode) < 2 or not mode[0] in (1, 2):
+        raise ValueError("Invalid mode. Must be a 2-tuple "
+                         "in the form ({1,2}, {True,False})")
 
     nrows, ncols = mat_dim(a)
+    dim, inverted = mode
     vec = [None] * (nrows * ncols)
 
     if dim == 1:
         it = reversed(a) if inverted else a
         for vo, row in enumerate(it):
             dr = vo * ncols
-            vec[dr: dr + ncols] = row[::]
+            vec[dr: dr + ncols] = row
     else:
         it = [[*reversed(row)] for row in a] if inverted else a
         for vo, col in enumerate(zip(*it)):
             dr = vo * nrows
-            vec[dr: dr + nrows] = col[::]
+            vec[dr: dr + nrows] = col
     return vec
+
+
+def mat_unflatten(v, size, mode=(1, False)):
+    """
+    Restores a vector to a matrix of the given size
+
+    Parameters
+    ----------
+    v: list[]
+        The vector to be "unflattened"
+    size: tuple
+        A 2-tuple representing the size of the resulting matrix (rows,
+        columns)
+    mode: tuple
+        The unflattening mode. This paramater can be used to restore
+        a matrix that's been vectorized with the flatten() method using
+        a specific mode. A sort of inverse function. By default, the
+        matrix is restored by rows segmenting the vector from start to
+        end using the given row size.
+
+    Returns
+    -------
+    list[list]
+        A matrix
+
+    """
+    if vec_is_void(v):
+        return []
+    if not size or len(size) < 2 or min(size) <= 0:
+        raise ValueError("Invalid size. Must be a 2-tuple of int > 0")
+    if not mode or len(mode) < 2 or not mode[0] in (1, 2):
+        raise ValueError("Invalid mode. Must be a 2-tuple "
+                         "in the form ({1,2}, {True,False})")
+    if len(v) / size[1] != size[0]:
+        raise ValueError("Can't unflat the vector to the given size")
+
+    rows, cols = size
+    # Mode rows (dim=1, inverted=False)
+    if mode == (1, False):
+        return [v[r * cols: (r + 1) * cols]
+                for r in range(rows)]
+    # Mode rows inverted (dim=1, inverted=True)
+    elif mode == (1, True):
+        return [v[r * cols: (r + 1) * cols]
+                for r in reversed(range(rows))]
+    # Mode cols (dim=2 inverted=False)
+    elif mode == (2, False):
+        step = None if rows == 1 or cols == 1 else 2
+        return [v[r: (r + 1) if cols == 1 else None: step]
+                for r in range(rows)]
+    # Mode cols inverted (dim=2 inverted=True)
+    elif mode == (2, True):
+        # if rows == 1:
+        #     return v.copy().reverse()
+        # if cols == 1:
+        #     return [[e] for e in v]
+        # else:
+        #     return [v[-r-1:: -2] for r in reversed(range(rows))]
+
+        step = None if cols == 1 else (-1 if rows == 1 else -2)
+        return [v[-(r + 1): (rows - r) if cols == 1 else None: step]
+                for r in reversed(range(rows))]
+    else:
+        raise RuntimeError
+
+
+def mat_pad(a, p, val=0):
+    """
+    Pads a matrix
+
+    Parameters
+    ----------
+    a: list[list]
+        A matrix of scalar values
+    p: tuple
+        A 4-tuple (top, bottom, left, right) indicating the padding
+        sizes on the first (top, bottom) and second (left, right)
+        dimension respectively
+    val: scalar
+        A constant value used for the padding (default is 0)
+
+    Returns
+    -------
+    list[list]
+        A padded matrix
+
+    """
+    if mat_is_void(a):
+        return []
+    if not p or len(p) < 4 or min(p) < 0:
+        raise ValueError(
+            "Invalid padding size. Must be a 4-tuple of int >= 0"
+        )
+
+    arows, acols = mat_dim(a)
+    top, bottom, left, right = p
+    ap = mat_new(arows + top + bottom, acols + left + right, val)
+    for n, row in enumerate(a):
+        ap[top + n][left: left + acols] = row
+    return ap
 
 
 def mat_to(newtype, a):
@@ -727,6 +857,123 @@ def mat_to(newtype, a):
         return [[newtype(e) for e in row] for row in a]
     else:
         return [[e for e in row] for row in a]
+
+
+def mat_toeplitz(h, g):
+    """
+    Constructs a Toeplitz matrix from the given sequences
+
+    Parameters
+    ----------
+    h: list[]
+        A sequence defining the matrix for non-negative indices.
+        This will define the number of rows.
+    g: list[]
+        A sequence defining the matrix for negative indices. This
+        will define the number of columns.
+
+    Returns
+    -------
+    list[list]
+        A Toeplitz matrix
+
+    """
+    rows, cols = len(h), len(g)
+    T = mat_new(rows, cols)
+    for col in range(cols):
+        for row in range(rows):
+            i = row - col
+            T[row][col] = h[i] if i >= 0 else g[-i]
+    return T
+
+
+def mat_toeplitz_1d(h, x):
+    """
+    Constructs a Toeplitz matrix for 1D convolutions
+
+    Parameters
+    ----------
+    h: list[]
+        The filter's vector
+    x: list[]
+        The signal's vector
+
+    Returns
+    -------
+    list[list]
+        A Toeplitz matrix such that y = T(h) * x
+
+    """
+    Nh, Nx = len(h), len(x)
+    Ny = Nx + Nh - 1
+    Trows, Tcols = Ny, Nx
+    T = mat_new(Trows, Tcols)
+    for i, row in enumerate(T):
+        Ts = max(i - Nh + 1, 0)
+        Te = min(i + 1, Tcols)
+        bs = min(i, Nh-1)
+        be = i - Tcols if i >= Tcols else None
+        row[Ts: Te] = h[bs: be: -1]
+    return T
+
+
+def mat_toeplitz_2d(h, x):
+    """
+    Constructs a Toeplitz matrix for 2D convolutions
+
+    Parameters
+    ----------
+    h: list[list]
+        A matrix of scalar values representing the filter (or kernel)
+    x: list[list]
+        A matrix of scalar values representing the signal
+
+    Returns
+    -------
+    list[list]
+        A doubly block Toeplitz matrix such that y = T(h) * x
+
+    """
+    # Calculate the dimensions of the output y
+    Nh, Mh = mat_dim(h)
+    Nx, Mx = mat_dim(x)
+    Ny, My = Nh + Nx - 1, Mh + Mx - 1
+
+    # Pad the filter, if needed
+    padn, padm = Ny - Nh, My - Mh
+    #if padn or padm:
+    #    hp = mat_pad(h, [padn, 0, 0, padm])
+
+    # Dimension of a Toeplitz matrix
+    Trows, Tcols = My, Mx
+    # Create the Toeplitz matrices
+    Tlist = []
+    for row in reversed(h):
+        t = mat_toeplitz_1d(row, x[0])
+        Tlist.append(t)
+    for _ in range(padn):
+        Tlist.append(mat_new(Trows, Tcols))
+    # Dimension of the block Toeplitz matrix (BTM)
+    BTrows, BTcols = Ny, Nx
+    # Dimension of the doubly block Toeplitz matrix (DBTM)
+    DTrows, DTcols = BTrows * Trows, BTcols * Tcols
+    # Construct the DBTM
+    DBTM = mat_new(DTrows, DTcols)
+    for col in range(Nx):
+        for row in range(Ny):
+            i = row - col
+            offset = (row * Trows, col * Tcols)
+            block = Tlist[i]
+            mat_submat_copy(DBTM, block, offset)
+    return DBTM
+    # xvec = mat_flatten(x, (1, True))
+    # yvec = mat_product(DBTM, xvec)
+    #
+    # for mat in Tlist:
+    #     print(np.array(mat))
+    # print(np.array(DBTM))
+    # print(np.array(xvec))
+    # print(np.array(yvec))
 
 
 # ---------------------------------------------------------
@@ -778,11 +1025,11 @@ def vec_copy(a):
     return a.copy()
 
 
-def vec_empty(a):
+def vec_is_void(a):
     """
     Check whether a given vector is empty
 
-    A vector is considered "empty" if it is None or has no
+    A vector is considered "void" if it is None or has no
     elements.
 
     Parameters
@@ -1000,7 +1247,7 @@ def vec_min(a):
         The minimum value in the vector, or None if the vector is empty
 
     """
-    if vec_empty(a):
+    if vec_is_void(a):
         return None
 
     fmin, _ = _utl.get_min_max_f(a)
@@ -1029,7 +1276,7 @@ def vec_max(a):
         The maximum value in the vector, or None if the vector is empty
 
     """
-    if vec_empty(a):
+    if vec_is_void(a):
         return None
 
     _, fmax = _utl.get_min_max_f(a)
@@ -1059,7 +1306,7 @@ def vec_min_max(a):
         or None if the vector is empty
 
     """
-    if vec_empty(a):
+    if vec_is_void(a):
         return None
 
     fmin, fmax = _utl.get_min_max_f(a)
@@ -1161,6 +1408,39 @@ def vec_subvec(a, r):
             a[r[0]: r[1] + step: step])
 
 
+def vec_pad(a, p, val=0):
+    """
+    Pads a vector
+
+    Parameters
+    ----------
+    a: list[]
+        A vector of scalar values
+    p: tuple
+        A 2-tuple indicating the padding size to the left and right
+        of the vector respectively
+    val: scalar
+        A constant value used for the padding
+
+    Returns
+    -------
+    list[]
+        A padded vector
+
+    """
+    if vec_is_void(a):
+        return []
+    if not p or len(p) < 2 or min(p) < 0:
+        raise ValueError(
+            "Invalid padding size. Must be a 2-tuple of int >= 0"
+        )
+
+    left, right = p
+    vp = vec_new(len(a) + left + right, val)
+    vp[left: left + len(a)] = a
+    return vp
+
+
 def vec_to(newtype, a):
     """
     Converts the elements of a vector to a specified scalar type
@@ -1170,7 +1450,7 @@ def vec_to(newtype, a):
     newtype: class
         The new scalar type to which the elements of the vector
         will be converted.
-    a: list[list]
+    a: list[]
         A vector of scalar values
 
     Returns
@@ -1184,3 +1464,49 @@ def vec_to(newtype, a):
         return [newtype(e) for e in a]
     else:
         return [e for e in a]
+
+
+# ---------------------------------------------------------
+#                     LINEAR OPERATIONS
+# ---------------------------------------------------------
+
+
+def conv2d(h, x):
+
+    ax = len(h[0]) // 2
+    ay = len(h) // 2
+    N, M = len(x), len(x[0])
+    J, I = len(h), len(h[0])
+    y = mat_new(N, M)
+
+    def inrange(pt):
+        return (0 <= pt[0] < N) and (0 <= pt[1] < M)
+
+    for n in range(N):
+        for m in range(M):
+            for j in range(J):
+                for i in range(I):
+                    p = (n + ay - j, m + ax - i)
+                    if inrange(p):
+                        y[n][m] += x[p[0]][p[1]] * h[j][i]
+    return y
+
+
+def conv2d_mat(h, x):
+    #import numpy as np
+    Nh, Mh = mat_dim(h)
+    Nx, Mx = mat_dim(x)
+    Ny, My = Nh + Nx - 1, Mh + Mx - 1
+
+    toep = mat_toeplitz_2d(h, x)
+    xvec = mat_flatten(x, (1, True))
+    yvec = mat_product(toep, xvec)
+    y = mat_unflatten(yvec, (Ny, My))
+
+    # print(np.array(toep))
+    # print(np.array(xvec))
+    # print(np.array(yvec))
+    # print(np.array(y))
+
+    return y
+
