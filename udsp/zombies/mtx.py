@@ -178,12 +178,19 @@ def dot_product(a, b):
             "Incompatible vector sizes: len(a) != len(b)"
         )
 
-    # return sum(map(operator.mul, a, b))
+    # Solution 1
+    # dot = 0
+    # for i in range(len(a)):
+    #     dot += a[i] * b[i]
+    # return dot
 
-    prod = 0
-    for i in range(len(a)):
-        prod += a[i] * b[i]
-    return prod
+    # Solution 2
+    # dot = 0
+    # for ai, bi in zip(a, b):
+    #     dot += ai * bi
+    # return dot
+
+    return sum(map(_op.mul, a, b))
 
 
 def mat_product(a, b):
@@ -901,7 +908,7 @@ def mat_toeplitz_1d(h, x):
     Returns
     -------
     list[list]
-        A Toeplitz matrix such that y = T(h) * x
+        A Toeplitz matrix T such that y = T(h) * x
 
     """
     Nh, Nx = len(h), len(x)
@@ -911,7 +918,7 @@ def mat_toeplitz_1d(h, x):
     for i, row in enumerate(T):
         Ts = max(i - Nh + 1, 0)
         Te = min(i + 1, Tcols)
-        bs = min(i, Nh-1)
+        bs = min(i, Nh - 1)
         be = i - Tcols if i >= Tcols else None
         row[Ts: Te] = h[bs: be: -1]
     return T
@@ -924,56 +931,45 @@ def mat_toeplitz_2d(h, x):
     Parameters
     ----------
     h: list[list]
-        A matrix of scalar values representing the filter (or kernel)
+        A matrix of scalar values representing the filter
     x: list[list]
         A matrix of scalar values representing the signal
 
     Returns
     -------
     list[list]
-        A doubly block Toeplitz matrix such that y = T(h) * x
+        A doubly block Toeplitz matrix T such that y = T(h) * x
 
     """
-    # Calculate the dimensions of the output y
+    # Calculate the dimensions of the arrays
     Nh, Mh = mat_dim(h)
     Nx, Mx = mat_dim(x)
     Ny, My = Nh + Nx - 1, Mh + Mx - 1
-
     # Pad the filter, if needed
     padn, padm = Ny - Nh, My - Mh
-    #if padn or padm:
-    #    hp = mat_pad(h, [padn, 0, 0, padm])
-
-    # Dimension of a Toeplitz matrix
+    # Dimensions of a Toeplitz matrix
     Trows, Tcols = My, Mx
+    # Dimension of the block Toeplitz matrix (BTM)
+    BTrows, BTcols = Ny, Nx
+    # Dimension of the doubly block Toeplitz matrix (DBTM)
+    DTrows, DTcols = BTrows * Trows, BTcols * Tcols
     # Create the Toeplitz matrices
     Tlist = []
     for row in reversed(h):
         t = mat_toeplitz_1d(row, x[0])
         Tlist.append(t)
-    for _ in range(padn):
-        Tlist.append(mat_new(Trows, Tcols))
-    # Dimension of the block Toeplitz matrix (BTM)
-    BTrows, BTcols = Ny, Nx
-    # Dimension of the doubly block Toeplitz matrix (DBTM)
-    DTrows, DTcols = BTrows * Trows, BTcols * Tcols
+    # Padding the blocks, if needed
+    Tlist += [None] * padn
     # Construct the DBTM
     DBTM = mat_new(DTrows, DTcols)
-    for col in range(Nx):
-        for row in range(Ny):
+    for col in range(BTcols):
+        for row in range(BTrows):
             i = row - col
             offset = (row * Trows, col * Tcols)
             block = Tlist[i]
-            mat_submat_copy(DBTM, block, offset)
+            if block:
+                mat_submat_copy(DBTM, block, offset)
     return DBTM
-    # xvec = mat_flatten(x, (1, True))
-    # yvec = mat_product(DBTM, xvec)
-    #
-    # for mat in Tlist:
-    #     print(np.array(mat))
-    # print(np.array(DBTM))
-    # print(np.array(xvec))
-    # print(np.array(yvec))
 
 
 # ---------------------------------------------------------
@@ -1472,7 +1468,22 @@ def vec_to(newtype, a):
 
 
 def conv2d(h, x):
+    """
+    Standard implementation of 2D convolution
 
+    Parameters
+    ----------
+    h: list[list]
+        A matrix of scalar values representing the filter
+    x: list[list]
+        A matrix of scalar values representing the signal
+
+    Returns
+    -------
+    list[list]
+        A matrix representing the (partial) convolution y = h * x
+
+    """
     ax = len(h[0]) // 2
     ay = len(h) // 2
     N, M = len(x), len(x[0])
@@ -1492,21 +1503,37 @@ def conv2d(h, x):
     return y
 
 
-def conv2d_mat(h, x):
-    #import numpy as np
+def conv2d_mat(h, x, warning=True):
+    """
+    Performs a 2D convolution in matrix form
+
+    Parameters
+    ----------
+    h: list[list]
+        A matrix of scalar values representing the filter
+    x: list[list]
+        A matrix of scalar values representing the signal
+    warning: bool
+
+    Returns
+    -------
+    list[list]
+        A matrix representing the (full) convolution y = h * x
+
+    """
+    if warning:
+        raise RuntimeWarning("\n\nWARNING: This method is for demonstration "
+                             "purposes only. It can choke your computer "
+                             "if used on big arrays (hundreds of columns "
+                             "and/or rows). You can remove this warning "
+                             "message by passing 'warning=False' and go "
+                             "ahead (at your own risk).\n\n")
     Nh, Mh = mat_dim(h)
     Nx, Mx = mat_dim(x)
     Ny, My = Nh + Nx - 1, Mh + Mx - 1
-
     toep = mat_toeplitz_2d(h, x)
     xvec = mat_flatten(x, (1, True))
     yvec = mat_product(toep, xvec)
-    y = mat_unflatten(yvec, (Ny, My))
-
-    # print(np.array(toep))
-    # print(np.array(xvec))
-    # print(np.array(yvec))
-    # print(np.array(y))
-
+    y = mat_unflatten(yvec, (Ny, My), (1, True))
     return y
 

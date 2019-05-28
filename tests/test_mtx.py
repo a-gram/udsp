@@ -281,7 +281,7 @@ class MatrixTestCase(unittest.TestCase):
                 "expect": a2
             },
             "Input 7": {
-                "args":[*make_args(a2, (2, False))],
+                "args": [*make_args(a2, (2, False))],
                 "expect": a2
             },
             "Input 8": {

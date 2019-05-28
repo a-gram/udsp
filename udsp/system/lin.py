@@ -54,8 +54,9 @@ class Filter1D(Filter):
 
         for n in range(len(x)):
             for i in range(len(h)):
-                if 0 <= (n + a - i) < len(x):
-                    y[n] += x[n + a - i] * h[i]
+                p = n + a - i
+                if 0 <= p < len(x):
+                    y[n] += x[p] * h[i]
 
         csignal = self.inputs[0].clone()
         csignal._Y = y
@@ -82,17 +83,16 @@ class Filter2D(Filter):
         J, I = len(h), len(h[0])
         y = _mtx.mat_new(N, M)
 
-        def inrange(p):
-            return (0 <= p[0] < N) and (0 <= p[1] < M)
+        def inrange(pt):
+            return (0 <= pt[0] < N) and (0 <= pt[1] < M)
 
         for n in range(N):
             for m in range(M):
-
                 for j in range(J):
                     for i in range(I):
-
-                        if inrange((n + ay - j, m + ax - i)):
-                            y[n][m] += x[n + ay - j][m + ax - i] * h[j][i]
+                        p = (n + ay - j, m + ax - i)
+                        if inrange(p):
+                            y[n][m] += x[p[0]][p[1]] * h[j][i]
 
         csignal = self.inputs[0].clone()
         csignal._Y = y
@@ -170,9 +170,6 @@ class FFilter1D(FFilter):
         X = self.inputs[0].get()
         H = self._hf.get()
         Y = _mtx.vec_mul(X, H)
-        # Hm = _pm.vec_abs(H)
-        # _pm.vec_scale(Hm, 1/max(Hm))
-        # Y = _pm.vec_mul(X, Hm)
 
         csignal = self.inputs[0].clone()
         csignal._Y = Y
@@ -194,9 +191,6 @@ class FFilter2D(FFilter):
         X = self.inputs[0].get()
         H = self._hf.get()
         Y = _mtx.mat_mul(X, H)
-        # Hm = _pm.mat_abs(H)
-        # _pm.mat_scale(Hm, 1/_pm.mat_max(Hm))
-        # Y = _pm.mat_mul(X, Hm)
 
         csignal = self.inputs[0].clone()
         csignal._Y = Y
