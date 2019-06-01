@@ -1,7 +1,7 @@
 
 import math as _math
 import cmath as _cm
-from ..zombies import mtx as _mtx
+from ..core import mtx as _mtx
 
 
 class Spectrum(object):

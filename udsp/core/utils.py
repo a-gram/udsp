@@ -139,7 +139,7 @@ def to_meshgrid(x):
     # return N, M
 
 
-def all_v(v, array):
+def all_same(v, array):
     """
     Checks whether all elements in an array ar equal to a given value
 
@@ -272,3 +272,24 @@ def get_min_max_f(array):
     except TypeError:
         is_cplx = type(array[0]) is complex
     return (cmin, cmax) if is_cplx else (rmin, rmax)
+
+
+def isiterable(obj):
+    """
+    Check whether a given object is iterable
+
+    Parameters
+    ----------
+    obj: Iterable
+
+    Returns
+    -------
+    bool
+
+    """
+    try:
+        _ = iter(obj)
+    except TypeError:
+        return False
+    return True
+

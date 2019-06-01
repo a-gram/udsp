@@ -6,8 +6,8 @@ used in Digital Signal Processing.
 
 import cmath as _cm
 
-from ..zombies import mtx as _mtx
-from ..zombies import utils as _utl
+from ..core import mtx as _mtx
+from ..core import utils as _utl
 
 
 class Transform(object):

@@ -2,8 +2,8 @@ import unittest
 
 from udsp.signal.base import Signal
 from udsp.signal.ndim import Signal1D, Signal2D
-from udsp.signal.plotter import Plotter1D, Plotter2D
 from udsp.signal.transforms import Transforms
+from udsp.core.plotter import Plotter1D, Plotter2D
 
 
 class Signal1DTestCase(unittest.TestCase):

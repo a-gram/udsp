@@ -841,6 +841,33 @@ def mat_pad(a, p, val=0):
     return ap
 
 
+def mat_compose(mats, f):
+    """
+    Compose a sequence of matrices using the given mapping function
+
+    Parameters
+    ----------
+    mats: list[list]
+        A sequence of matrices with equal dimensions
+    f: callable
+        A function that performs the mapping f:mats->composite,
+        where 'composite' is the resulting matrix. The function
+        f(m1[i,j],...,mn[i,j]) is applied to all elements of the
+        n matrices for each point.
+
+    Returns
+    -------
+    list[list]
+        The composite matrix
+
+    """
+    return [[*map(f, *t)] for t in zip(*mats)]
+
+    # Solution 2
+    # Note: in this case f() must be a vector function
+    # return [*itertools.starmap(f, [*zip(*mats)])]
+
+
 def mat_to(newtype, a):
     """
     Converts the elements of a matrix to a specified scalar type
@@ -977,7 +1004,7 @@ def mat_toeplitz_2d(h, x):
 # ---------------------------------------------------------
 
 
-def vec_new(elems, init=0):
+def vec_new(elems, init=None):
     """
     Creates a new initialized vector
 
@@ -985,11 +1012,11 @@ def vec_new(elems, init=0):
     ----------
     elems: int
         The number of elements
-    init: scalar, callable, optional
-        The initializer expression. It can be a scalar value or a
-        callable object (function, lambda, etc.) that will be invoked
-        for each element in the matrix. The callable object must have
-        the signature f(n), where the argument n indicates the elements.
+    init: scalar, callable, collections.Iterable, optional
+        The initializer expression. It can be a scalar value, a callable
+        object (function, lambda, etc.) that will be invoked for each
+        element in the matrix, or an iterable. The callable object must
+        have the signature f(n), where n is the index over the elements.
 
     Returns
     -------
@@ -999,8 +1026,10 @@ def vec_new(elems, init=0):
     """
     if callable(init):
         return [init(n) for n in range(elems)]
+    elif _utl.isiterable(init):
+        return [i for i in init]
     else:
-        return [init] * elems
+        return [init or 0] * elems
 
 
 def vec_copy(a):
@@ -1521,6 +1550,7 @@ def conv2d_mat(h, x, warning=True):
         A matrix representing the (full) convolution y = h * x
 
     """
+    # TODO: implement this with generators
     if warning:
         raise RuntimeWarning("\n\nWARNING: This method is for demonstration "
                              "purposes only. It can choke your computer "

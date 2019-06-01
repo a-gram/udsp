@@ -1,6 +1,6 @@
 import unittest
 
-from udsp.zombies import mtx
+from udsp.core import mtx
 
 
 class MatrixTestCase(unittest.TestCase):

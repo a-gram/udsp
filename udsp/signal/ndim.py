@@ -7,10 +7,10 @@ abstract class for n-dimensional signals.
 import math as _math
 
 from .base import Signal as Signal
-from ..zombies import mtx as _mtx
+from ..core import mtx as _mtx
 from .transforms import Transforms
 from .spectrums import Spectrum, Spectrum1D, Spectrum2D
-from . import plotter as _plt
+from udsp.core import plotter as _plt
 
 
 class Signal1D(Signal):

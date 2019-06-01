@@ -3,7 +3,7 @@ from .base import System as _System
 from ..signal.ndim import Signal1D as _Signal1D
 from ..signal.ndim import Signal2D as _Signal2D
 from ..signal.transforms import Transforms as _Transforms
-from ..zombies import mtx as _mtx
+from ..core import mtx as _mtx
 
 
 class Filter(_System):

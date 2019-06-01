@@ -7,7 +7,7 @@ import copy as _copy
 
 from .transforms import Transforms
 from .spectrums import Spectrum
-from ..zombies import utils as _utl
+from ..core import utils as _utl
 
 
 class Signal(object):

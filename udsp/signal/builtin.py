@@ -6,16 +6,13 @@ are commonly used in Digital Signal Processing.
 
 import math as _math
 import random as _rand
-# To be removed
-import cv2 as _cv
-import numpy as _np
 
-from .ndim import Signal1D as _Signal1D
-from .ndim import Signal2D as _Signal2D
-
-from ..zombies import mtx as _mtx
-from ..zombies import stat as _stat
-from ..zombies import utils as _utl
+from .ndim import Signal1D
+from .ndim import Signal2D
+from ..core import mtx as _mtx
+from ..core import stat as _stat
+from ..core import utils as _utl
+from ..core.img import Image as _Image
 
 
 # ---------------------------------------------------------
@@ -41,7 +38,7 @@ class RNGMixin:
 # ---------------------------------------------------------
 
 
-class Builtin1D(_Signal1D):
+class Builtin1D(Signal1D):
     """
     Abstract base class for built-in 1D signals
 
@@ -109,7 +106,7 @@ class Builtin1D(_Signal1D):
         raise NotImplementedError
 
 
-class Builtin2D(_Signal2D):
+class Builtin2D(Signal2D):
     """
     Abstract base class for built-in 2D signals
 
@@ -131,7 +128,7 @@ class Builtin2D(_Signal2D):
             This signal's instance
 
         """
-        if not self._length or _utl.all_v(0, self._length):
+        if not self._length or _utl.all_same(0, self._length):
             raise ValueError(
                 "The signal length must be provided"
             )
@@ -145,6 +142,8 @@ class Builtin2D(_Signal2D):
 
         X = _mtx.mat_new(dim1, dim2, lambda n, m: (n * ds, m * ds))
         Y = self._g(X)
+
+        assert _mtx.mat_dims_equal(X, Y, full_check=True)
 
         print(" L: {}x{} units".format(self._length[0], self._length[1]))
         print(" X: {:d}x{:d} samples".format(dim1, dim2))
@@ -544,18 +543,32 @@ class Noise2D(Builtin2D, RNGMixin):
         return _mtx.mat_new(len(x), len(x[0]), f)
 
 
-class Image(_Signal2D):
+class GrayImage(Builtin2D):
 
-    def __init__(self, path, **kwargs):
+    def __init__(self,
+                 path,
+                 **kwargs):
+
         super().__init__(**kwargs)
+        self._img = _Image.from_file(path)
+        self._length = (*reversed(self._img.metadata.size),)
+        self.make()
 
-        img = _cv.imread(path, _cv.IMREAD_GRAYSCALE).astype(_np.float32)
+    def _g(self, x):
 
-        if img is None:
-            raise IOError("Couldn't read image %s" % path)
-
-        # Y = [n.copy() for n in img]
-        Y = _mtx.mat_copy(img)
-
-        self.set(Y)
-        self._img = img
+        planes = self._img.load()
+        # Image is L or LA (grayscale)
+        if len(planes) in (1, 2):
+            yplane = planes[0]
+        # Image is RGB or RGBA (colour)
+        elif len(planes) in (3, 4):
+            cplanes = planes if len(planes) == 3 else planes[:3]
+            # Convert to grayscale
+            yplane = _mtx.mat_compose(
+                cplanes,
+                lambda r, g, b: round(0.2126 * r + 0.7152 * g + 0.0722 * b)
+            )
+        else:
+            raise RuntimeError("Bug")
+        self._img = None  # we no longer need it
+        return yplane
