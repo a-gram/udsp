@@ -12,7 +12,7 @@ from .ndim import Signal2D
 from ..core import mtx as _mtx
 from ..core import stat as _stat
 from ..core import utils as _utl
-from ..core.img import Image as _Image
+from ..core import image as _image
 
 
 # ---------------------------------------------------------
@@ -550,7 +550,7 @@ class GrayImage(Builtin2D):
                  **kwargs):
 
         super().__init__(**kwargs)
-        self._img = _Image.from_file(path)
+        self._img = _image.from_file(path)
         self._length = (*reversed(self._img.metadata.size),)
         self.make()
 

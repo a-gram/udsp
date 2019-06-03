@@ -1,140 +1,30 @@
 """
-Image module
+PNG image implementation
 
 """
 
-import itertools as _iter
-from os.path import splitext
+import collections
+import io
+import itertools
+import math
+import operator
+import re
+import struct
+import warnings
+import zlib
 
-from . import mtx as _mtx
-
-# Image formats "registry"
-# New formats must call _register_format() to register
-# a new codec with the registry
-_FORMATS = {}
-
-
-def _register_format(img):
-    """
-    Register an image reader/writer (codec) for a specific format
-
-    Parameters
-    ----------
-    img: class
-
-    Returns
-    -------
-    None
-
-    """
-    try:
-        _FORMATS[img.format] = img
-    except KeyError:
-        raise AttributeError(
-            "Codecs must define a 'format' attribute"
-        )
-
-
-class Metadata(object):
-    """
-    Image metadata container
-
-    Attributes
-    ----------
-    size: tuple
-        The size of the image, as in (width, height)
-    bps: int
-        The bits per sample (not pixel, beware)
-    planes: int
-        The number of colour planes
-
-    Note that these are the minimum set of metadata
-    required to identify an image. Specific formats may
-    add more.
-
-    """
-    def __init__(self):
-        self.size = None
-        self.bps = None
-        self.planes = None
-
-
-class Image(object):
-    """
-    Abstract base class for image formats
-
-    """
-    @classmethod
-    def from_file(cls, filename):
-        """
-        Factory method to create images from files
-
-        Parameters
-        ----------
-        filename: str
-            The full path to the image
-
-        Returns
-        -------
-        Image
-
-        """
-        # Prevent subclasses from messing up
-        if cls is not Image:
-            raise TypeError(
-                "This method must be called from the Image interface"
-            )
-        _, ext = splitext(filename)
-        fmt = ext.replace(".", "")
-        try:
-            image = _FORMATS[fmt]
-        except KeyError:
-            raise RuntimeError("Unsupported image format: %s" % fmt)
-        img = image(filename)
-        return img
-
-    def load(self):
-        """
-        Load and returns the image data
-
-        Returns
-        -------
-        list[mat]
-            A list of matrices representing the image's colour planes
-
-        """
-        raise NotImplementedError
-
-    def save(self):
-        """
-        Save the image
-
-        Returns
-        -------
-        None
-
-        """
-        raise NotImplementedError
-
-    @property
-    def metadata(self):
-        """
-        Get metadata for the image
-
-        Returns
-        -------
-        Metadata
-
-        """
-        raise NotImplementedError
+from array import array
+from .base import Image, Metadata
+from .. import mtx as _mtx
 
 
 class PNGImage(Image):
 
     format = "png"
+    description = "Portable Network Graphics coder/encoder"
 
     def __init__(self, stream):
-        super().__init__()
+        super().__init__(stream)
         self._reader = PNGReader(stream)
         self._writer = None
         self._metadata = None
@@ -186,16 +76,13 @@ class PNGImage(Image):
         planes = [[] for _ in range(nplanes)]
         for sline in data:
             for p in range(nplanes):
-                it = _iter.islice(sline, p, None, nplanes)
+                it = itertools.islice(sline, p, None, nplanes)
                 row = _mtx.vec_new(0, it)
                 planes[p].append(row)
         return planes
 
 
-_register_format(PNGImage)
-
-
-# png.py - PNG encoder/decoder in pure Python
+# PNG encoder/decoder in pure Python
 #
 # Copyright (C) 2006 Johann C. Rocholl <johann@browsershots.org>
 # Portions Copyright (C) 2009 David Jones <drj@pobox.com>
@@ -225,167 +112,8 @@ _register_format(PNGImage)
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-The ``png`` module can read and write PNG files.
-
-Installation and Overview
--------------------------
-
-``pip install pypng``
-
-For help, type ``import png; help(png)`` in your python interpreter.
-
-A good place to start is the :class:`Reader` and :class:`Writer` classes.
-
-Coverage of PNG formats is fairly complete;
-all allowable bit depths (1/2/4/8/16/24/32/48/64 bits per pixel) and
-colour combinations are supported:
-
-- greyscale (1/2/4/8/16 bit);
-- RGB, RGBA, LA (greyscale with alpha) with 8/16 bits per channel;
-- colour mapped images (1/2/4/8 bit).
-
-Interlaced images,
-which support a progressive display when downloading,
-are supported for both reading and writing.
-
-A number of optional chunks can be specified (when writing)
-and understood (when reading): ``tRNS``, ``bKGD``, ``gAMA``.
-
-The ``sBIT`` chunk can be used to specify precision for
-non-native bit depths.
-
-Requires Python 3.4 or higher (or Python 2.7).
-Installation is trivial,
-but see the ``README.txt`` file (with the source distribution) for details.
-
-Full use of all features will need some reading of the PNG specification
-http://www.w3.org/TR/2003/REC-PNG-20031110/.
-
-The package also comes with command line utilities.
-
-- ``pripamtopng`` converts
-  `Netpbm <http://netpbm.sourceforge.net/>`_ PAM/PNM files to PNG;
-- ``pripngtopam`` converts PNG to file PAM/PNM.
-
-There are a few more for simple PNG manipulations.
-
-Spelling and Terminology
-------------------------
-
-Generally British English spelling is used in the documentation.
-So that's "greyscale" and "colour".
-This not only matches the author's native language,
-it's also used by the PNG specification.
-
-Colour Models
--------------
-
-The major colour models supported by PNG (and hence by PyPNG) are:
-
-- greyscale;
-- greyscale--alpha;
-- RGB;
-- RGB--alpha.
-
-Also referred to using the abbreviations: L, LA, RGB, RGBA.
-Each letter codes a single channel:
-*L* is for Luminance or Luma or Lightness (greyscale images);
-*A* stands for Alpha, the opacity channel
-(used for transparency effects, but higher values are more opaque,
-so it makes sense to call it opacity);
-*R*, *G*, *B* stand for Red, Green, Blue (colour image).
-
-Lists, arrays, sequences, and so on
------------------------------------
-
-When getting pixel data out of this module (reading) and
-presenting data to this module (writing) there are
-a number of ways the data could be represented as a Python value.
-
-The preferred format is a sequence of *rows*,
-which each row being a sequence of *values*.
-In this format, the values are in pixel order,
-with all the values from all the pixels in a row
-being concatenated into a single sequence for that row.
-
-Consider an image that is 3 pixels wide by 2 pixels high, and each pixel
-has RGB components:
-
-Sequence of rows::
-
-  list([R,G,B, R,G,B, R,G,B],
-       [R,G,B, R,G,B, R,G,B])
-
-Each row appears as its own list,
-but the pixels are flattened so that three values for one pixel
-simply follow the three values for the previous pixel.
-
-This is the preferred because
-it provides a good compromise between space and convenience.
-PyPNG regards itself as at liberty to replace any sequence type with
-any sufficiently compatible other sequence type;
-in practice each row is an array (``bytearray`` or ``array.array``).
-
-To allow streaming the outer list is sometimes
-an iterator rather than an explicit list.
-
-An alternative format is a single array holding all the values.
-
-Array of values::
-
-  [R,G,B, R,G,B, R,G,B,
-   R,G,B, R,G,B, R,G,B]
-
-The entire image is one single giant sequence of colour values.
-Generally an array will be used (to save space), not a list.
-
-The top row comes first,
-and within each row the pixels are ordered from left-to-right.
-Within a pixel the values appear in the order R-G-B-A
-(or L-A for greyscale--alpha).
-
-There is another format, which should only be used with caution.
-It is mentioned because it is used internally,
-is close to what lies inside a PNG file itself,
-and has some support from the public API.
-This format is called *packed*.
-When packed, each row is a sequence of bytes (integers from 0 to 255),
-just as it is before PNG scanline filtering is applied.
-When the bit depth is 8 this is the same as a sequence of rows;
-when the bit depth is less than 8 (1, 2 and 4),
-several pixels are packed into each byte;
-when the bit depth is 16 each pixel value is decomposed into 2 bytes
-(and `packed` is a misnomer).
-This format is used by the :meth:`Writer.write_packed` method.
-It isn't usually a convenient format,
-but may be just right if the source data for
-the PNG image comes from something that uses a similar format
-(for example, 1-bit BMPs, or another PNG file).
-"""
-
-# from __future__ import print_function
-
 __version__ = "0.0.19"
 
-import collections
-import io   # For io.BytesIO
-import itertools
-import math
-# http://www.python.org/doc/2.4.4/lib/module-operator.html
-import operator
-import re
-import struct
-import sys
-# http://www.python.org/doc/2.4.4/lib/module-warnings.html
-import warnings
-import zlib
-
-from array import array
-
-
-# The PNG signature.
-# http://www.w3.org/TR/PNG/#5PNG-file-signature
 signature = struct.pack('8B', 137, 80, 78, 71, 13, 10, 26, 10)
 
 # The xstart, ystart, xstep, ystep for the Adam7 interlace passes.
@@ -723,7 +451,7 @@ class PNGReader:
     Pure Python PNG decoder in pure Python.
     """
 
-    def __init__(self, _guess=None, filename=None, file=None, bytes=None):
+    def __init__(self, _guess=None, filename=None, file=None, bytez=None):
         """
         The constructor expects exactly one keyword argument.
         If you supply a positional argument instead,
@@ -742,7 +470,7 @@ class PNGReader:
             (_guess is not None) +
             (filename is not None) +
             (file is not None) +
-            (bytes is not None))
+            (bytez is not None))
         if keywords_supplied != 1:
             raise TypeError("Reader() takes exactly 1 argument")
 
@@ -757,14 +485,14 @@ class PNGReader:
 
         if _guess is not None:
             if isarray(_guess):
-                bytes = _guess
+                bytez = _guess
             elif isinstance(_guess, str):
                 filename = _guess
             elif hasattr(_guess, 'read'):
                 file = _guess
 
-        if bytes is not None:
-            self.file = io.BytesIO(bytes)
+        if bytez is not None:
+            self.file = io.BytesIO(bytez)
         elif filename is not None:
             self.file = open(filename, "rb")
         elif file is not None:
@@ -791,18 +519,18 @@ class PNGReader:
             self.atchunk = self._chunk_len_type()
         if not self.atchunk:
             raise ChunkError("No more chunks.")
-        length, type = self.atchunk
+        length, ctype = self.atchunk
         self.atchunk = None
 
         data = self.file.read(length)
         if len(data) != length:
             raise ChunkError(
                 'Chunk %s too short for required %i octets.'
-                % (type, length))
+                % (ctype, length))
         checksum = self.file.read(4)
         if len(checksum) != 4:
-            raise ChunkError('Chunk %s too short for checksum.' % type)
-        verify = zlib.crc32(type)
+            raise ChunkError('Chunk %s too short for checksum.' % ctype)
+        verify = zlib.crc32(ctype)
         verify = zlib.crc32(data, verify)
         # Whether the output from zlib.crc32 is signed or not varies
         # according to hideous implementation details, see
@@ -815,12 +543,12 @@ class PNGReader:
             (a, ) = struct.unpack('!I', checksum)
             (b, ) = struct.unpack('!I', verify)
             message = ("Checksum error in %s chunk: 0x%08X != 0x%08X."
-                       % (type.decode('ascii'), a, b))
+                       % (ctype.decode('ascii'), a, b))
             if lenient:
                 warnings.warn(message, RuntimeWarning)
             else:
                 raise ChunkError(message)
-        return type, data
+        return ctype, data
 
     def chunks(self):
         """Return an iterator that will yield each chunk as a
@@ -1052,17 +780,17 @@ class PNGReader:
         if len(x) != 8:
             raise FormatError(
                 'End of file whilst reading chunk length and type.')
-        length, type = struct.unpack('!I4s', x)
+        length, ctype = struct.unpack('!I4s', x)
         if length > 2 ** 31 - 1:
-            raise FormatError('Chunk %s is too large: %d.' % (type, length))
+            raise FormatError('Chunk %s is too large: %d.' % (ctype, length))
         # Check that all bytes are in valid ASCII range.
         # https://www.w3.org/TR/2003/REC-PNG-20031110/#5Chunk-layout
-        type_bytes = set(bytearray(type))
+        type_bytes = set(bytearray(ctype))
         if not(type_bytes <= set(range(65, 91)) | set(range(97, 123))):
             raise FormatError(
                 'Chunk %r has invalid Chunk Type.'
-                % list(type))
-        return length, type
+                % list(ctype))
+        return length, ctype
 
     def process_chunk(self, lenient=False):
         """
@@ -1075,8 +803,8 @@ class PNGReader:
         checksum failures will raise warnings rather than exceptions.
         """
 
-        type, data = self.chunk(lenient=lenient)
-        method = '_process_' + type.decode('ascii')
+        ctype, data = self.chunk(lenient=lenient)
+        method = '_process_' + ctype.decode('ascii')
         m = getattr(self, method, None)
         if m:
             m(data)
@@ -1219,11 +947,11 @@ class PNGReader:
         def iteridat():
             """Iterator that yields all the ``IDAT`` chunks as strings."""
             while True:
-                type, data = self.chunk(lenient=lenient)
-                if type == b'IEND':
+                ctype, data = self.chunk(lenient=lenient)
+                if ctype == b'IEND':
                     # http://www.w3.org/TR/PNG/#11IEND
                     break
-                if type != b'IDAT':
+                if ctype != b'IDAT':
                     continue
                 # type == b'IDAT'
                 # http://www.w3.org/TR/PNG/#11IDAT
@@ -1372,9 +1100,9 @@ class PNGReader:
             info['planes'] = 3 + bool(self.trns)
             plte = self.palette()
 
-            def iterpal(pixels):
-                for row in pixels:
-                    row = [plte[x] for x in row]
+            def iterpal(ipixels):
+                for row in ipixels:
+                    row = [plte[r] for r in row]
                     yield array('B', itertools.chain(*row))
             pixels = iterpal(pixels)
         elif self.trns:
@@ -1392,8 +1120,8 @@ class PNGReader:
             info['planes'] += 1
             typecode = 'BH'[info['bitdepth'] > 8]
 
-            def itertrns(pixels):
-                for row in pixels:
+            def itertrns(ipixels):
+                for row in ipixels:
                     # For each row we group it into pixels, then form a
                     # characterisation vector that says whether each
                     # pixel is opaque or not.  Then we convert
@@ -1420,8 +1148,8 @@ class PNGReader:
             shift = info['bitdepth'] - targetbitdepth
             info['bitdepth'] = targetbitdepth
 
-            def itershift(pixels):
-                for row in pixels:
+            def itershift(ipixels):
+                for row in ipixels:
                     yield [p >> shift for p in row]
             pixels = itershift(pixels)
         return x, y, pixels, info
@@ -1721,56 +1449,9 @@ def convert_rgb_to_rgba(row, result):
         result[i::4] = row[i::3]
 
 
-# Only reason to include this in this module is that
-# several utilities need it, and it is small.
-def binary_stdin():
-    """
-    A sys.stdin that returns bytes.
-    """
-
-    try:
-        return sys.stdin.buffer
-    except AttributeError:
-        # Probably Python 2, where bytes are strings.
-        return sys.stdin
+# ---------------------------------------------------------
 
 
-def binary_stdout():
-    """
-    A sys.stdout that accepts bytes.
-    """
-
-    # First there is a Python3 issue.
-    try:
-        stdout = sys.stdout.buffer
-    except AttributeError:
-        # Probably Python 2, where bytes are strings.
-        stdout = sys.stdout
-
-    # On Windows the C runtime file orientation needs changing.
-    if sys.platform == "win32":
-        import msvcrt
-        import os
-        msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-
-    return stdout
-
-
-def cli_open(path):
-    if path == "-":
-        return binary_stdin()
-    return open(path, "rb")
-
-
-def main(argv):
-    """
-    Run command line PNG.
-    """
-    print("What should the command line tool do?", file=sys.stderr)
-
-
-if __name__ == '__main__':
-    try:
-        main(sys.argv)
-    except Error as e:
-        print(e, file=sys.stderr)
+# Make the codec discoverable
+def udsp_get_image_codec():
+    return PNGImage
