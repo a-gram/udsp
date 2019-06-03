@@ -14,7 +14,8 @@ for specific image formats:
 3. A codec must implement the Image interface AND a 'getter'
    function with a specific name (see the _CODEC_GET_FUNCTION
    constant below) in order to be discovered and registered.
-   This function must return the class implementing the codec.
+   This function must be defined at the module level and must
+   return the class implementing the codec.
 
 """
 

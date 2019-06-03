@@ -1,3 +1,7 @@
+"""
+Linear systems
+
+"""
 
 from .base import System as _System
 from ..signal.ndim import Signal1D as _Signal1D

@@ -1,3 +1,7 @@
+"""
+Signal spectra
+
+"""
 
 import math as _math
 import cmath as _cm

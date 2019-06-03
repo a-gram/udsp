@@ -1,6 +1,38 @@
 """
 This module defines functions and classes for matrix-vector
-manipulation and algebra.
+operations (linear algebra and other manipulations). It is meant
+to be used only internally, not as a public interface (consider it
+as "private").
+
+Matrices and vectors are implemented using the built-in list class,
+that is vectors are basically list[] and matrices list[list].
+
+Elements of matrices and vectors are assumed to be scalar types
+(i.e. int, float or complex), all of the same type.
+
+Since lists are heterogeneous containers, there is no enforcement
+for all the elements to be of the same type, and the functions
+defined here do not perform any check. It is assumed that all
+elements are of same type as the first element. Implementation with
+the 'array' class would have been nice, but it lacks complex type
+support and (surprisingly) performs worse than lists on math operations.
+
+Creating a matrix or a vector should be done by using the functions
+defined here. That is, if you're extending/modifying the library
+code, do not do this
+
+a = [[1 for m in range(ncols)] for n in range(nrows)]
+
+instead, do this
+
+a = mat_new(nrows, ncols, 1)
+
+Use the matrix-vector API defined here for all operations on matrices
+and vectors. This is because the current implementation with lists
+may be replaced in future with something more performant and the
+modifications needed to the code will be limited to this module if
+using this API.
+
 
 """
 
