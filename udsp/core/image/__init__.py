@@ -11,7 +11,7 @@ for specific image formats:
    in the 'image' sub-package.
 2. A codec file is identified by the name ending with a specfic
    suffix (see the _CODEC_FILE_SUFFIX constant below)
-3. A codec must implement the Image interface AND a 'getter'
+3. A codec must implement the ImageCodec interface AND a 'getter'
    function with a specific name (see the _CODEC_GET_FUNCTION
    constant below) in order to be discovered and registered.
    This function must be defined at the module level and must
@@ -22,6 +22,10 @@ for specific image formats:
 import os
 import importlib
 import warnings
+import itertools
+
+from .. import mtx as _mtx
+
 
 # Name of the codec getter function
 _CODEC_GET_FUNCTION = "udsp_get_image_codec"
@@ -38,60 +42,127 @@ _supported_formats = {}
 # ---------------------------------------------------------
 
 
-def from_file(filename):
+class Image(object):
     """
-    Factory method to create image objects from files
+    Image object
 
-    Parameters
+    Attributes
     ----------
-    filename: str
-        The full path to the image file
+    _codec: ImageCodec
 
-    Returns
-    -------
-    Image
+    _meta: Metadata
 
     """
-    fmt = os.path.splitext(filename)[1].replace(".", "")
+    def __init__(self):
+        self._meta = None
+        self._codec = None
 
-    try:
-        image = _supported_formats[fmt]
-    except KeyError:
-        raise RuntimeError("Unsupported image format: %s" % fmt)
+    @classmethod
+    def from_file(cls, filename):
+        """
+        Create image objects from files
 
-    return image["codec"](filename)
+        Parameters
+        ----------
+        filename: str
+            The full path to the image file
 
+        Returns
+        -------
+        Image
 
-def get_supported_formats():
-    """
-    Get a list of supported image codecs
+        """
+        ext = os.path.splitext(filename)[1].replace(".", "")
 
-    Returns
-    -------
-    list
+        try:
+            formatt = _supported_formats[ext]
+        except KeyError:
+            raise RuntimeError("Unsupported image format: %s" % ext)
 
-    """
-    return list(_supported_formats.keys())
+        image = cls()
+        image._codec = formatt["codec"](filename)
+        return image
 
+    @property
+    def metadata(self):
+        if self._meta is None:
+            self._meta = self._codec.get_metadata()
+        return self._meta
 
-def print_supported_formats():
-    """
-    Print a list of supported image codecs to stdout
+    @property
+    def format(self):
+        return self._codec.format
 
-    Returns
-    -------
-    None
+    @property
+    def description(self):
+        return self._codec.description
 
-    """
-    for fmt, info in _supported_formats.items():
-        print("\nSupported image formats")
-        print("-----------------------")
-        print("{} - {}".format(fmt, info["description"]))
-    print("")
+    def load(self):
+        data = self._codec.decode()
+        return self._to_mat(data)
+
+    def save(self):
+        raise NotImplementedError
+
+    def _to_mat(self, data):
+
+        nplanes = self._meta.planes
+
+        # Solution 1 (slower)
+        #
+        # nrows, ncols = img["size"][1], img["size"][0]
+        # data = [*data]
+        # planes = []
+        #
+        # def pixel(n, m):
+        #     return data[n][m * nplanes + pixel.poff]
+        # pixel.poff = 0
+        #
+        # for plane in range(nplanes):
+        #     p = _mtx.mat_new(nrows, ncols, pixel)
+        #     planes.append(p)
+        #     pixel.poff += 1
+        # return planes
+
+        planes = [[] for _ in range(nplanes)]
+        for sline in data:
+            for p in range(nplanes):
+                it = itertools.islice(sline, p, None, nplanes)
+                row = _mtx.vec_new(0, it)
+                planes[p].append(row)
+        return planes
+
+    @staticmethod
+    def get_supported_formats():
+        """
+        Get a list of supported image formats
+
+        Returns
+        -------
+        list[str]
+
+        """
+        return list(_supported_formats.keys())
+
+    @staticmethod
+    def print_supported_formats():
+        """
+        Print a list of supported image formats to stdout
+
+        Returns
+        -------
+        None
+
+        """
+        for fmt, info in _supported_formats.items():
+            print("\nSupported image formats")
+            print("-----------------------")
+            print("{} - {}".format(fmt, info["description"]))
+        print("")
 
 
 # ---------------------------------------------------------
-#                     Private members
+#                  Module initialization
 # ---------------------------------------------------------
 
 

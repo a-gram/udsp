@@ -1,5 +1,5 @@
 """
-Image module
+Image codec module
 
 """
 
@@ -17,7 +17,9 @@ class Metadata(object):
     planes: int
         The number of colour planes
 
-    Note that these are the minimum set of metadata
+    Notes
+    -----
+    The fields defined here are the minimum set of metadata
     required to identify an image. Specific formats may
     add more.
 
@@ -28,7 +30,7 @@ class Metadata(object):
         self.planes = None
 
 
-class Image(object):
+class ImageCodec(object):
     """
     Abstract base class for image codecs
 
@@ -49,21 +51,21 @@ class Image(object):
         """
         pass
 
-    def load(self):
+    def decode(self):
         """
-        Load and returns the image data
+        Load and returns the image pixels data
 
         Returns
         -------
         list[]
-            A list of matrices representing the image's colour planes
+            A list of matrices representing the image colour planes
 
         """
         raise NotImplementedError
 
-    def save(self):
+    def encode(self):
         """
-        Save the image
+        Save the image data
 
         Returns
         -------
@@ -72,10 +74,9 @@ class Image(object):
         """
         raise NotImplementedError
 
-    @property
-    def metadata(self):
+    def get_metadata(self):
         """
-        Get metadata for the image
+        Get the image metadata
 
         Returns
         -------

@@ -14,11 +14,10 @@ import warnings
 import zlib
 
 from array import array
-from .base import Image, Metadata
-from .. import mtx as _mtx
+from .base import ImageCodec, Metadata
 
 
-class PNGImage(Image):
+class PNGCodec(ImageCodec):
 
     format = "png"
     description = "Portable Network Graphics coder/encoder"
@@ -27,59 +26,22 @@ class PNGImage(Image):
         super().__init__(stream)
         self._reader = PNGReader(stream)
         self._writer = None
-        self._metadata = None
 
-    def load(self):
-        _, _, data, info = self._reader.read()
-        data = self._to_mat(info, data)
-        if not self._metadata:
-            self._get_metadata()
-        return data
+    def decode(self):
+        data = self._reader.read()
+        return data[2]
 
-    def save(self):
+    def encode(self):
         raise NotImplementedError
 
-    @property
-    def metadata(self):
-        if not self._metadata:
+    def get_metadata(self):
+        if not hasattr(self._reader, "width"):
             self._reader.preamble()
-            self._get_metadata()
-        return self._metadata
-
-    def _get_metadata(self):
         meta = Metadata()
         meta.size = (self._reader.width, self._reader.height)
         meta.bps = self._reader.bitdepth
         meta.planes = self._reader.planes
-        self._metadata = meta
-
-    def _to_mat(self, info, data):
-
-        nplanes = info["planes"]
-
-        # Solution 1 (slower)
-        #
-        # nrows, ncols = img["size"][1], img["size"][0]
-        # data = [*data]
-        # planes = []
-        #
-        # def pixel(n, m):
-        #     return data[n][m * nplanes + pixel.poff]
-        # pixel.poff = 0
-        #
-        # for plane in range(nplanes):
-        #     p = _mtx.mat_new(nrows, ncols, pixel)
-        #     planes.append(p)
-        #     pixel.poff += 1
-        # return planes
-
-        planes = [[] for _ in range(nplanes)]
-        for sline in data:
-            for p in range(nplanes):
-                it = itertools.islice(sline, p, None, nplanes)
-                row = _mtx.vec_new(0, it)
-                planes[p].append(row)
-        return planes
+        return meta
 
 
 # PNG encoder/decoder in pure Python
@@ -1454,4 +1416,4 @@ def convert_rgb_to_rgba(row, result):
 
 # Make the codec discoverable
 def udsp_get_image_codec():
-    return PNGImage
+    return PNGCodec

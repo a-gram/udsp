@@ -12,7 +12,7 @@ from .ndim import Signal2D
 from ..core import mtx as _mtx
 from ..core import stat as _stat
 from ..core import utils as _utl
-from ..core import image as _image
+from ..core.image import Image as _Image
 
 
 # ---------------------------------------------------------
@@ -550,13 +550,13 @@ class GrayImage(Builtin2D):
                  **kwargs):
 
         super().__init__(**kwargs)
-        self._img = _image.from_file(path)
-        self._length = (*reversed(self._img.metadata.size),)
+        self._image = _Image.from_file(path)
+        self._length = (*reversed(self._image.metadata.size),)
         self.make()
 
     def _g(self, x):
 
-        planes = self._img.load()
+        planes = self._image.load()
         # Image is L or LA (grayscale)
         if len(planes) in (1, 2):
             yplane = planes[0]
@@ -570,5 +570,5 @@ class GrayImage(Builtin2D):
             )
         else:
             raise RuntimeError("Bug")
-        self._img = None  # we no longer need it
+        self._image = None  # we no longer need it
         return yplane
