@@ -1,5 +1,5 @@
 """
-PNG image implementation
+PNG codec implementation
 
 """
 
@@ -14,10 +14,10 @@ import warnings
 import zlib
 
 from array import array
-from .base import ImageCodec, Metadata
+from ..base import MediaCodec, Metadata
 
 
-class PNGCodec(ImageCodec):
+class PNGCodec(MediaCodec):
 
     format = "png"
     description = "Portable Network Graphics coder/encoder"
@@ -32,7 +32,8 @@ class PNGCodec(ImageCodec):
         return data[2]
 
     def encode(self):
-        raise NotImplementedError
+        # Not implemented
+        pass
 
     def get_metadata(self):
         if not hasattr(self._reader, "width"):
@@ -40,7 +41,7 @@ class PNGCodec(ImageCodec):
         meta = Metadata()
         meta.size = (self._reader.width, self._reader.height)
         meta.bps = self._reader.bitdepth
-        meta.planes = self._reader.planes
+        meta.channels = self._reader.planes
         return meta
 
 
@@ -1415,5 +1416,5 @@ def convert_rgb_to_rgba(row, result):
 
 
 # Make the codec discoverable
-def udsp_get_image_codec():
+def udsp_get_media_codec():
     return PNGCodec

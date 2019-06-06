@@ -12,7 +12,7 @@ from .ndim import Signal2D
 from ..core import mtx as _mtx
 from ..core import stat as _stat
 from ..core import utils as _utl
-from ..core.image import Image as _Image
+from ..core import media as _media
 
 
 # ---------------------------------------------------------
@@ -157,7 +157,7 @@ class Builtin2D(Signal2D):
 
     def _g(self, x):
         """
-        The signal's generating  function
+        The signal's generating function
 
         This abstract method defines the underlying function that
         generates the signal and must be implemented by subclasses.
@@ -550,7 +550,7 @@ class GrayImage(Builtin2D):
                  **kwargs):
 
         super().__init__(**kwargs)
-        self._image = _Image.from_file(path)
+        self._image = _media.Image.from_file(path)
         self._length = (*reversed(self._image.metadata.size),)
         self.make()
 
