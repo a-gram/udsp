@@ -1,6 +1,5 @@
 """
-This module defines miscellaneous utility functions used
-throughout the library.
+Miscellaneous utility functions used throughout the library.
 
 """
 

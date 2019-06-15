@@ -837,40 +837,77 @@ def mat_unflatten(v, size, mode=(1, False)):
         raise RuntimeError
 
 
-def mat_pad(a, p, val=0):
+def mat_extend(m, ext, val=0, mode=None, **kwargs):
     """
-    Pads a matrix
+    Extends a matrix and assigns a given value to the new elements
 
     Parameters
     ----------
-    a: list[list]
+    m: list[list]
         A matrix of scalar values
-    p: tuple
-        A 4-tuple (top, bottom, left, right) indicating the padding
+    ext: tuple
+        A 4-tuple (top, bottom, left, right) indicating the extension
         sizes on the first (top, bottom) and second (left, right)
         dimension respectively
     val: scalar
-        A constant value used for the padding (default is 0)
+        A constant value used for the new elements
 
     Returns
     -------
     list[list]
-        A padded matrix
+        The given matrix extended with the given value
 
     """
-    if mat_is_void(a):
+    if mat_is_void(m):
         return []
-    if not p or len(p) < 4 or min(p) < 0:
+    if not ext or len(ext) < 4 or min(ext) < 0:
         raise ValueError(
             "Invalid padding size. Must be a 4-tuple of int >= 0"
         )
 
-    arows, acols = mat_dim(a)
-    top, bottom, left, right = p
-    ap = mat_new(arows + top + bottom, acols + left + right, val)
-    for n, row in enumerate(a):
-        ap[top + n][left: left + acols] = row
-    return ap
+    m_rows, m_cols = mat_dim(m)
+    top, bottom, left, right = ext
+    me_rows = m_rows + top + bottom
+    me_cols = m_cols + left + right
+
+    me = mat_new(me_rows, me_cols, val)
+
+    for n, row in enumerate(m):
+        me[top + n][left: left + m_cols] = row
+
+    # No mode specified, just return the default
+    if mode is None:
+        return me
+
+    # Extend the values ranges of m
+    if mode == "range":
+
+        ds = kwargs["ds"]
+        ns, ms = m[0][0][0], m[0][0][1]
+
+        # Solution 1
+
+        # ext_col = [ms + (j - left) * ds for j in range(me_cols)]
+        # ext_row = [ns + (i - top) * ds for i in range(me_rows)]
+        #
+        # for n, row in enumerate(me):
+        #     if top <= n < top + m_rows:
+        #         for i in range(0, left):
+        #             row[i] = (ext_row[n], ext_col[i])
+        #         for i in range(left + m_cols, me_cols):
+        #             row[i] = (ext_row[n], ext_col[i])
+        #     else:
+        #         for i in range(me_cols):
+        #             row[i] = (ext_row[n], ext_col[i])
+
+        # Solution 2
+        for i in range(me_rows):
+            ni = ns + (i - top) * ds
+            for j in range(me_cols):
+                me[i][j] = (ni, ms + (j - left) * ds)
+    else:
+        raise ValueError("Invalid extension mode.")
+    return me
 
 
 def mat_compose(mats, f):
@@ -1465,40 +1502,92 @@ def vec_subvec(a, r):
             a[r[0]: r[1] + step: step])
 
 
-def vec_pad(a, p, val=0):
+def vec_extend(v, ext, val=0, mode=None, **kwargs):
     """
-    Pads a vector
+    Extends a vector and assigns a given value to the new elements
 
     Parameters
     ----------
-    a: list[]
+    v: list[]
         A vector of scalar values
-    p: tuple
-        A 2-tuple indicating the padding size to the left and right
+    ext: tuple
+        A 2-tuple indicating the extension size to the left and right
         of the vector respectively
     val: scalar
-        A constant value used for the padding
+        A constant value used for the new elements
+    mode: str, None
+        A string representing the mode in which the newly added
+        elements will be evaluated. By default, if none is specified,
+        the new elements are all given the specified constant value.
+        If a mode is specified, it must be a string indicating one
+        of the supported modes, and **kwargs will contain parameters
+        relative to that specific mode.
+
+        Currently supported modes:
+
+        "range": Extends the range of values in the vector at both
+                 extrema by continuing the progression backwards from
+                 the minimum up to the lower bound, and forwards from
+                 the maximum up to the upper bound. The range is
+                 supposed to be a linear progression.
+
+                 margs:  ds (int) - Step of the progression
+
+                 Examples:
+
+                 ext=(2,3), ds=1: [2, 3, 4] => [0, 1, 2, 3, 4, 5, 6, 7]
+                 ext=(1,2), ds=0.5: [5.5, 6, 6.5] => [5, 5.5, 6, 6.5, 7, 7.5]
+    kwargs:
+        The arguments relative to the extension mode, if any (see 'mode'
+        parameter)
 
     Returns
     -------
     list[]
-        A padded vector
+        A vector extension of the given vector
 
     """
-    if vec_is_void(a):
+    if vec_is_void(v):
         return []
-    if not p or len(p) < 2 or min(p) < 0:
+    if not ext or len(ext) < 2 or min(ext) < 0:
         raise ValueError(
-            "Invalid padding size. Must be a 2-tuple of int >= 0"
+            "Invalid extension size. Must be a 2-tuple of int >= 0"
         )
 
-    left, right = p
-    vp = vec_new(len(a) + left + right, val)
-    vp[left: left + len(a)] = a
-    return vp
+    left, right = ext
+    dim = len(v) + left + right
+    ve = vec_new(dim, val)
+    ve[left: left + len(v)] = v
+
+    # No mode specified, just return the default
+    if mode is None:
+        return ve
+
+    # Extend the values range of v
+    if mode == "range":
+
+        ds = kwargs["ds"]
+        xs, xe = v[0], v[len(v) - 1]
+
+        # Solution 1
+        #
+        # Extend backwards
+        # for i in range(1, left + 1):
+        #     ve[left - i] = xs - (i * ds)
+        # # Extend forwards
+        # for i in range(right):
+        #     ve[dim - right + i] = xe + (i + 1) * ds
+
+        # Extend backwards
+        ve[:left] = [xs - (left - i) * ds for i in range(left)]
+        # Extend forwards
+        ve[left + len(v):] = [xe + (i + 1) * ds for i in range(right)]
+    else:
+        raise ValueError("Invalid extension mode.")
+    return ve
 
 
-def vec_to(newtype, a):
+def vec_to(newtype, v):
     """
     Converts the elements of a vector to a specified scalar type
 
@@ -1507,7 +1596,7 @@ def vec_to(newtype, a):
     newtype: class
         The new scalar type to which the elements of the vector
         will be converted.
-    a: list[]
+    v: list[]
         A vector of scalar values
 
     Returns
@@ -1517,10 +1606,10 @@ def vec_to(newtype, a):
         If the vector is already of the given type, a copy is returned.
 
     """
-    if type(a[0]) is not newtype:
-        return [newtype(e) for e in a]
+    if type(v[0]) is not newtype:
+        return [newtype(e) for e in v]
     else:
-        return [e for e in a]
+        return [e for e in v]
 
 
 # ---------------------------------------------------------

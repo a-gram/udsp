@@ -5,13 +5,10 @@ are commonly used in Digital Signal Processing.
 """
 
 import math as _math
-import random as _rand
 
-from .ndim import Signal1D
-from .ndim import Signal2D
+from .bbase import Builtin1D, Builtin2D
 from ..core import mtx as _mtx
 from ..core import stat as _stat
-from ..core import utils as _utl
 from ..core import media as _media
 
 
@@ -34,150 +31,6 @@ class RNGMixin:
 
 
 # ---------------------------------------------------------
-#                      Base classes
-# ---------------------------------------------------------
-
-
-class Builtin1D(Signal1D):
-    """
-    Abstract base class for built-in 1D signals
-
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def make(self):
-        """
-        Creates the signal
-
-        This method generates the signal's samples. It should be first
-        called when a new instance is created, or afterwards to update
-        it if parameters are changed.
-
-        Returns
-        -------
-        Signal
-            This signal's instance
-
-        """
-        if not self._length:
-            raise ValueError(
-                "The signal length must be provided"
-            )
-
-        if not self._sfreq:
-            self._sfreq = 1
-
-        ds = 1 / self._sfreq
-        N = round(self._length * self._sfreq)
-        X = _mtx.vec_new(N, lambda n: n * ds)
-        Y = self._g(X)
-
-        self._X = X
-        self._Y = Y
-        self._length = N * ds
-
-        print(" L: {} units".format(self._length))
-        print(" X: {:d} samples".format(len(X)))
-        print("ds: {} units".format(ds))
-        print("Fs: {} samples/unit".format(self._sfreq))
-
-        return self
-
-    def _g(self, x):
-        """
-        The signal's generating function
-
-        This abstract method defines the underlying function that
-        generates the signal and must be implemented by subclasses.
-
-        Parameters
-        ----------
-        x: list[]
-            A 1D array representing the points where the function
-            must be evaluated.
-
-        Returns
-        -------
-        list[]
-            A 1D array with the signal's samples
-
-        """
-        raise NotImplementedError
-
-
-class Builtin2D(Signal2D):
-    """
-    Abstract base class for built-in 2D signals
-
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def make(self):
-        """
-        Creates the signal
-
-        This method generates the signal's samples. It should be first
-        called when a new instance is created, or afterwards to update
-        it if parameters are changed.
-
-        Returns
-        -------
-        Signal
-            This signal's instance
-
-        """
-        if not self._length or _utl.all_same(0, self._length):
-            raise ValueError(
-                "The signal length must be provided"
-            )
-
-        if not self._sfreq:
-            self._sfreq = 1
-
-        ds = 1 / self._sfreq
-        dim1 = round(self._length[0] * self._sfreq)
-        dim2 = round(self._length[1] * self._sfreq)
-
-        X = _mtx.mat_new(dim1, dim2, lambda n, m: (n * ds, m * ds))
-        Y = self._g(X)
-
-        assert _mtx.mat_dims_equal(X, Y, full_check=True)
-
-        print(" L: {}x{} units".format(self._length[0], self._length[1]))
-        print(" X: {:d}x{:d} samples".format(dim1, dim2))
-        print("ds: {} units".format(ds))
-        print("Fs: {} samples/unit".format(self._sfreq))
-
-        self._X = X
-        self._Y = Y
-        self._length = (dim1 * ds, dim2 * ds)
-        return self
-
-    def _g(self, x):
-        """
-        The signal's generating function
-
-        This abstract method defines the underlying function that
-        generates the signal and must be implemented by subclasses.
-
-        Parameters
-        ----------
-        x: list[list[]]
-            A 2D array representing the points where the function
-            must be evaluated.
-
-        Returns
-        -------
-        list[list]
-            A 2D array with the signal's samples
-
-        """
-        raise NotImplementedError
-
-
-# ---------------------------------------------------------
 #                       1D signals
 # ---------------------------------------------------------
 
@@ -197,7 +50,7 @@ class Const1D(Builtin1D):
         self.k = k
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         def f(n):
             return self.k
@@ -231,7 +84,7 @@ class Pulse1D(Builtin1D):
         self.a = a
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
         x1, x2 = self.xo - self.w / 2, self.xo + self.w / 2
 
         def f(n):
@@ -266,7 +119,7 @@ class Gaussian1D(Builtin1D):
         self.k = k
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         def f(n):
             return self.k * _math.exp(
@@ -302,7 +155,7 @@ class Logistic1D(Builtin1D):
         self.xo = xo
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         def f(n):
             return self.a / (1 + _math.exp(-self.k * (x[n] - self.xo)))
@@ -346,48 +199,10 @@ class Noise1D(Builtin1D, RNGMixin):
         self.pdf_params = pdf_params
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         def f(n):
             return self.dist[self.pdf](**self.pdf_params or {})
-
-        return _mtx.vec_new(len(x), f)
-
-
-class Osc1D(Builtin1D):
-
-    def __init__(self, dc=5, f1=4, f2=7, **kwargs):
-        super().__init__(**kwargs)
-        self.dc = dc
-        self.f1 = f1
-        self.f2 = f2
-        self.make()
-
-    def _g(self, x):
-        w1, w2 = 2 * _math.pi * self.f1, 2 * _math.pi * self.f2
-
-        def f(n):
-            return self.dc + _math.sin(w1 * x[n]) + \
-                   _math.cos(w2 * x[n]) + _math.exp(-x[n] ** 2)
-
-        return _mtx.vec_new(len(x), f)
-
-
-class Noisy1D(Builtin1D):
-
-    def __init__(self, f1=1, f2=5, An=0.5, **kwargs):
-        super().__init__(**kwargs)
-        self.f1 = f1
-        self.f2 = f2
-        self.An = An
-        self.make()
-
-    def _g(self, x):
-        w1, w2 = 2 * _math.pi * self.f1, 2 * _math.pi * self.f2
-
-        def f(n):
-            return _math.sin(w1 * x[n]) + \
-                   _rand.uniform(0, self.An) * _math.sin(w2 * x[n])
 
         return _mtx.vec_new(len(x), f)
 
@@ -415,7 +230,7 @@ class Const2D(Builtin2D):
         self.k = k
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         def f(n, m):
             return self.k
@@ -449,7 +264,7 @@ class Pulse2D(Builtin2D):
         self.a = a
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         x1, x2 = self.xo[0] - self.w[0] / 2, self.xo[0] + self.w[0] / 2
         y1, y2 = self.xo[1] - self.w[1] / 2, self.xo[1] + self.w[1] / 2
@@ -488,7 +303,7 @@ class Gaussian2D(Builtin2D):
         self.k = k
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         def f(n, m):
             return self.k * _math.exp(
@@ -535,7 +350,7 @@ class Noise2D(Builtin2D, RNGMixin):
         self.pdf_params = pdf_params
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         def f(n, m):
             return self.dist[self.pdf](**self.pdf_params or {})
@@ -554,7 +369,7 @@ class GrayImage(Builtin2D):
         self._length = (*reversed(self._image.metadata.size),)
         self.make()
 
-    def _g(self, x):
+    def _generate(self, x):
 
         planes = self._image.load()
         # Image is L or LA (grayscale)
@@ -566,7 +381,9 @@ class GrayImage(Builtin2D):
             # Convert to grayscale
             yplane = _mtx.mat_compose(
                 cplanes,
-                lambda r, g, b: round(0.2126 * r + 0.7152 * g + 0.0722 * b)
+                lambda r, g, b: round(0.2126 * r +
+                                      0.7152 * g +
+                                      0.0722 * b)
             )
         else:
             raise RuntimeError("Bug")

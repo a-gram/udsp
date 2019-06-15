@@ -12,7 +12,7 @@ from ..core import utils as _utl
 
 class Transform(object):
     """
-    Abstract class for transform operators
+    Abstract class for transform operations
 
     This class defines the interface to be implemented by all domain
     transform operations.

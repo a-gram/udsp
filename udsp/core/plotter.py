@@ -118,7 +118,7 @@ if _HAS_MATPLOTLIB:
 
         def map(self):
             """
-            Plots a signal as a scalar field
+            Plots a signal as a 2D scalar field
 
             Returns
             -------

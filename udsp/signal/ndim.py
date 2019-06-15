@@ -8,9 +8,9 @@ import math as _math
 
 from .base import Signal as Signal
 from ..core import mtx as _mtx
+from ..core import plotter as _plt
 from .transforms import Transforms
 from .spectrums import Spectrum, Spectrum1D, Spectrum2D
-from udsp.core import plotter as _plt
 
 
 class Signal1D(Signal):
@@ -33,7 +33,7 @@ class Signal1D(Signal):
         else:
             self._Y = []
             self._X = []
-            self._length = 0
+            self._length = length or 0
         self.yunits = yunits
         self.xunits = xunits
 
@@ -146,12 +146,15 @@ class Signal1D(Signal):
 
         pads = sum(p)
         dim1 = len(self._Y) + pads
+        stime = 1 / self._sfreq
+
+        Yp = _mtx.vec_extend(self._Y, p, value)
+        Xp = _mtx.vec_extend(self._X, p, mode="range", ds=stime)
+
         psignal = self.clone()
-        psignal._Y = _mtx.vec_new(dim1, value)
-        psignal._Y[p[0]: p[0] + len(self._Y)] = self._Y
-        psignal._X = _mtx.vec_new(dim1, None)
-        psignal._X[p[0]: p[0] + len(self._X)] = self._X
-        # TODO: Shouldn't we update the signal length?
+        psignal._Y = Yp
+        psignal._X = Xp
+        psignal._length = dim1 / self._sfreq
         return psignal
 
     def zero_pad_to(self, signal):
@@ -317,7 +320,7 @@ class Signal2D(Signal):
         else:
             self._Y = []
             self._X = []
-            self._length = (0, 0)
+            self._length = length or (0, 0)
         self.yunits = yunits
         self.xunits = xunits
 
@@ -394,7 +397,7 @@ class Signal2D(Signal):
             if not all(length):
                 raise ValueError("All lengths must be > 0")
 
-        Ny, My = len(y), len(y[0])
+        Ny, My = _mtx.mat_dim(y)
 
         if y and not x:
             x = _mtx.mat_new(Ny, My, lambda n, m: (n, m))
@@ -428,53 +431,11 @@ class Signal2D(Signal):
         if self.is_empty():
             return Signal2D()
 
-        pt, pb = p[0]
-        pl, pr = p[1]
+        p = p[0] + p[1]
+        stime = 1 / self._sfreq
 
-        Yp = _mtx.mat_pad(self._Y, (pt, pb, pl, pr), value)
-        Xp = _mtx.mat_pad(self._X, (pt, pb, pl, pr), value)
-
-        # Solution 1
-        # ----------
-        # if min(p[0]) < 0 or min(p[1]) < 0:
-        #     raise ValueError(
-        #         "Negative padding values: {}".format(p)
-        #     )
-        #
-        # pads1, pads2 = sum(p[0]), sum(p[1])
-        # dim1, dim2 = len(self._Y) + pads1, len(self._Y[0]) + pads2
-        #
-        # Yp = _mtx.mat_new(dim1, dim2, value)
-        # Xp = _mtx.mat_new(dim1, dim2, None)
-        #
-        # for n, rows in enumerate(zip(self._Y, self._X)):
-        #     Yp[p[0][0] + n][p[1][0]: dim2 - p[1][1]] = rows[0]
-        #     Xp[p[0][0] + n][p[1][0]: dim2 - p[1][1]] = rows[1]
-
-        # Solution 2
-        # ----------
-        # Yp = [[0  if (m<p[1][0] or m>=dim2-p[1][1]) or
-        #              (n<p[0][0] or n>=dim1-p[0][1])
-        #           else
-        #              self._Y[n-p[0][0]][m-p[1][0]]
-        #           for m in range(dim2)]
-        #               for n in range(dim1)]
-        #                  
-        # Xp = [[None  if (m<p[1][0] or m>=dim2-p[1][1]) or
-        #                 (n<p[0][0] or n>=dim1-p[0][1])
-        #              else
-        #                 self._X[n-p[0][0]][m-p[1][0]]
-        #              for m in range(dim2)]
-        #                  for n in range(dim1)]
-        #
-        # Solution 3
-        # ----------
-        # Yp = [
-        #     ([value] * p[1][0]) + self.Y[n - p[0][0]][:] + ([value] * p[1][1])
-        #     if p[0][0] <= n < (dim1 - p[0][1])
-        #     else [value] * dim2
-        #     for n in range(dim1)
-        # ]
+        Yp = _mtx.mat_extend(self._Y, p, value)
+        Xp = _mtx.mat_extend(self._X, p, mode="range", ds=stime)
 
         psignal = self.clone()
         psignal._Y = Yp

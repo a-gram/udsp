@@ -3,7 +3,7 @@ Multimedia module
 
 This module discovers and registers all available media codecs
 found in the 'media' package. A codec is a reader/writer object
-that can understand and manipulate images in a specific format.
+that can understand and manipulate media in a specific format.
 The following protocol must be observed in order to add support
 for specific image formats:
 
@@ -12,7 +12,7 @@ for specific image formats:
 2. A codec file is identified by the name ending with a specfic
    suffix (see CODEC_FILE_SUFFIX constant in 'const.py')
 3. A codec must implement the MediaCodec interface AND a 'getter'
-   function with a specific name (see the CODEC_GET_FUNCTION
+   function with a specific signature (see the CODEC_GET_FUNCTION
    constant in 'const.py') in order to be discovered and registered.
    This function must be defined at the module level and must
    return the class implementing the codec.

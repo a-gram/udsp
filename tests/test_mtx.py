@@ -5,42 +5,85 @@ from udsp.core import mtx
 
 class MatrixTestCase(unittest.TestCase):
 
-    def __do_test(self, fun, test_data):
+    def __do_test(self, test, test_data):
         """
         Private refactored method to execute the test cases
 
         Parameters
         ----------
-        fun: callable
-            The test case to be executed
+        test: callable
+            The test case function to be executed
         test_data: dict
-            A table with the test data for the case
+            A dictionary with the test data for the case. Each entry
+            in the dictionary represents an input to the test case and
+            has the following layout:
+
+            "<input_name>": {
+                                "args": <list> | <dict>,
+                                "expect": <object>,
+                                ["assert"]: <function>,
+                                ["assert_params"]: <dict>
+                            }
+
+            where "<input_name>" is a string indicating the name of the
+            input, "args" is a list or dictionary holding the input
+            values to the test (the arguments to the tested function/
+            method), "expect" is an object indicating the expected
+            results, "assert" an optional assertion function to be
+            executed to check the results and "assert_params" an
+            optional sequence of parameters (in a dict) to be injected
+            into the assertion function.
+            Note that not all assertion functions can be used with this
+            method, but the most common can. Particularly, only those
+            that require at least two positional arguments of the type
+            (results, expected) are acceptable. If none is specified
+            than a default one is used.
 
         """
-        for i, inp_exp in test_data.items():
+        def is_except_type(t):
+            """Checks whether a type is an exception"""
+            return type(t) is type and issubclass(t, BaseException)
 
-            args = inp_exp["args"]
-            expected = inp_exp["expect"]
-            assrt = inp_exp["assert"] if "assert" in inp_exp else ""
+        def test_case():
+            """Executes the case with appropriately expanded args"""
+            if isinstance(args, list):
+                return test(*args)
+            elif isinstance(args, dict):
+                return test(**args)
+
+        for i, inp in test_data.items():
+
+            args = inp["args"]
+            expected = inp["expect"]
+            assrt = inp["assert"] if "assert" in inp else None
+            assrt_pms = (inp["assert_params"]
+                         if "assert_params" in inp else {})
             emsg = "{} failed".format(i)
 
+            # Default assertion
+            assertion = assrt or self.assertListEqual
+
             try:
-                if expected is "exception":
-                    with self.assertRaises(ValueError, msg=emsg):
-                        fun(*args)
-                elif assrt and assrt is "equal":
-                    results = fun(*args)
-                    self.assertEqual(results, expected, msg=emsg)
+                if is_except_type(expected):
+                    with self.assertRaises(expected, msg=emsg):
+                        test_case()
                 else:
-                    results = fun(*args)
-                    self.assertListEqual(results, expected, msg=emsg)
+                    results = test_case()
+                    assertion(results, expected, msg=emsg, **assrt_pms)
             # Catch exceptions not covered by the tests and print
             # info to pinpoint the failing case, otherwise a bit obscure
             # since this code is not inline with the tests.
             except Exception as exc:
                 if not isinstance(exc, AssertionError):
-                    print("\n\nError in {}\nmsg: {}\nargs: {}\n".
-                          format(i, exc, args))
+                    # print("\n\nError in {}\nmsg: {}\nargs: {}\n".
+                    print("\n\nError in test case '{}'\n"
+                          "  test: {}\n"
+                          "  input: {}\n"
+                          "  msg: {}\n"
+                          "  args: {}\n".
+                          format(self.__class__.__name__,
+                                 test.__name__,
+                                 i, exc, args))
                 raise exc
 
 # ---------------------------------------------------------
@@ -84,7 +127,7 @@ class MatrixTestCase(unittest.TestCase):
             },
             "Input 4": {
                 "args": [a1, b1, (0, -1), inplace],
-                "expect": "exception"
+                "expect": ValueError
             },
             "Input 5": {
                 "args": [a2, b1, (0, 2), inplace],
@@ -136,7 +179,7 @@ class MatrixTestCase(unittest.TestCase):
             },
             "Input 16": {
                 "args": [a1, b4, (), inplace],
-                "expect": "exception"
+                "expect": ValueError
             }
         }
         self.__do_test(mtx.mat_submat_copy, test_data)
@@ -234,11 +277,11 @@ class MatrixTestCase(unittest.TestCase):
             },
             "Input 21": {
                 "args": [a1, (3, False)],
-                "expect": "exception"
+                "expect": ValueError
             },
             "Input 22": {
                 "args": [a1, (3,)],
-                "expect": "exception"
+                "expect": ValueError
             }
         }
         self.__do_test(mtx.mat_flatten, test_data)
@@ -338,24 +381,24 @@ class MatrixTestCase(unittest.TestCase):
             },
             "Input 21": {
                 "args": [[1, 2, 3], (2, 3)],
-                "expect": "exception"
+                "expect": ValueError
             },
             "Input 22": {
                 "args": [[1, 2, 3], (3,)],
-                "expect": "exception"
+                "expect": ValueError
             },
             "Input 23": {
                 "args": [[1, 2, 3], (3, 0)],
-                "expect": "exception"
+                "expect": ValueError
             },
             "Input 24": {
                 "args": [[1, 2, 3], (3, 1), (3, True)],
-                "expect": "exception"
+                "expect": ValueError
             }
         }
         self.__do_test(mtx.mat_unflatten, test_data)
 
-    def test_mat_pad(self):
+    def test_mat_extend(self):
 
         a1 = [[1, 2],
               [3, 4]]
@@ -459,11 +502,117 @@ class MatrixTestCase(unittest.TestCase):
             },
             "Input 17": {
                 "args": [a4, (1, 0, -1, 0)],
-                "expect": "exception"
+                "expect": ValueError
             },
             "Input 18": {
                 "args": [a4, ()],
-                "expect": "exception"
+                "expect": ValueError
             },
         }
-        self.__do_test(mtx.mat_pad, test_data)
+        self.__do_test(mtx.mat_extend, test_data)
+
+    def test_vec_extend(self):
+
+        a1 = [1, 2, 3, 4]
+        a2 = [1]
+        a3 = []
+        a4 = [0.25, 0.50, 0.75, 1]
+        # Test data
+        test_data = {
+            "Input 1": {
+                "args": [a1, (1, 1)],
+                "expect": [0] + a1 + [0]
+            },
+            "Input 2": {
+                "args": [a1, (1, 1), 3],
+                "expect": [3] + a1 + [3]
+            },
+            "Input 3": {
+                "args": [a1, (0, 1)],
+                "expect": a1 + [0]
+            },
+            "Input 4": {
+                "args": [a1, (1, 0)],
+                "expect": [0] + a1
+            },
+            "Input 5": {
+                "args": [a1, (3, 2)],
+                "expect": [0, 0, 0] + a1 + [0, 0]
+            },
+            "Input 6": {
+                "args": [a1, (0, 0)],
+                "expect": a1
+            },
+            "Input 7": {
+                "args": [a2, (1, 1)],
+                "expect": [0] + a2 + [0]
+            },
+            "Input 8": {
+                "args": [a2, (2, 0)],
+                "expect":  [0, 0] + a2
+            },
+            "Input 9": {
+                "args": [a2, (0, 1)],
+                "expect":  a2 + [0]
+            },
+            "Input 10": {
+                "args": [a2, (2, 3)],
+                "expect":  [0, 0] + a2 + [0, 0, 0]
+            },
+            "Input 11": {
+                "args": [a2, (0, 0)],
+                "expect": a2
+            },
+            "Input 12": {
+                "args": [a3, (1, 1)],
+                "expect": a3
+            },
+            "Input 13": {
+                "args": {"v": a4,
+                         "ext": (0, 0),
+                         "mode": "range",
+                         "ds": 0.25},
+                "expect": a4
+            },
+            "Input 14": {
+                "args": {"v": a4,
+                         "ext": (0, 1),
+                         "mode": "range",
+                         "ds": 0.25},
+                "expect": a4 + [1.25]
+            },
+            "Input 15": {
+                "args": {"v": a4,
+                         "ext": (1, 0),
+                         "mode": "range",
+                         "ds": 0.25},
+                "expect": [0] + a4
+            },
+            "Input 16": {
+                "args": {"v": a4,
+                         "ext": (3, 2),
+                         "mode": "range",
+                         "ds": 0.25},
+                "expect": [-0.5, -0.25, 0] + a4 + [1.25, 1.5]
+            },
+            "Input 17": {
+                "args": {"v": a4,
+                         "ext": (3, 2),
+                         "mode": "strange",
+                         "ds": 0.25},
+                "expect": ValueError
+            },
+            "Input 18": {
+                "args": [a4, (3, 2), None, "range"],
+                "expect": KeyError
+            },
+            "Input 19": {
+                "args": [a4, (-1, 0)],
+                "expect": ValueError
+            },
+            "Input 20": {
+                "args": [a4, ()],
+                "expect": ValueError
+            },
+        }
+        self.__do_test(mtx.vec_extend, test_data)
