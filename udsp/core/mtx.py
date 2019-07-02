@@ -271,7 +271,7 @@ def mat_product(a, b):
 
 def mat_add(a, b):
     """
-    Computes the sum of two matrices, or of a matrix and a scalar
+    Add two matrices or a matrix and a scalar element-wise
 
     Parameters
     ----------
@@ -286,16 +286,6 @@ def mat_add(a, b):
         A matrix sum of a and b
 
     """
-    # if type(b) is list:
-    #     assert len(a) == len(b) and len(a[0]) == len(b[0])
-    #     # return [[a[n][m] - b[n][m] for m in range(len(a[0]))]
-    #     #                            for n in range(len(a))]
-    #     return [*map(lambda ra, rb: [ai + bi for ai, bi in zip(ra, rb)], a, b)]
-    # else:
-    #     # return [[a[n][m] - b for m in range(len(a[0]))]
-    #     #                      for n in range(len(a))]
-    #     return [*map(lambda ra: [ai + b for ai in ra], a)]
-
     if type(b) is not list:
         b = [b] * len(a)
     return [*map(vec_add, a, b)]
@@ -303,7 +293,7 @@ def mat_add(a, b):
 
 def mat_sub(a, b):
     """
-    Computes the difference of two matrices, or of a matrix and a scalar
+    Subtract two matrices or a matrix and a scalar element-wise
 
     Parameters
     ----------
@@ -318,16 +308,6 @@ def mat_sub(a, b):
         A matrix difference of a and b
 
     """
-    # if type(b) is list:
-    #     assert len(a) == len(b) and len(a[0]) == len(b[0])
-    #     # return [[a[n][m] - b[n][m] for m in range(len(a[0]))]
-    #     #                            for n in range(len(a))]
-    #     return [*map(lambda ra, rb: [ai - bi for ai, bi in zip(ra, rb)], a, b)]
-    # else:
-    #     # return [[a[n][m] - b for m in range(len(a[0]))]
-    #     #                      for n in range(len(a))]
-    #     return [*map(lambda ra: [ai - b for ai in ra], a)]
-
     if type(b) is not list:
         b = [b] * len(a)
     return [*map(vec_sub, a, b)]
@@ -335,14 +315,14 @@ def mat_sub(a, b):
 
 def mat_mul(a, b):
     """
-    Computes the element-wise (Hadamard) product of two matrices
+    Multiply two matrices or a matrix and a scalar element-wise
 
     Parameters
     ----------
     a: list[list]
         A matrix of scalar values
     b: list[list], scalar
-        A matrix of scalar values
+        A matrix of scalar values or a scalar value.
 
     Returns
     -------
@@ -350,16 +330,6 @@ def mat_mul(a, b):
         A matrix product of a and b
 
     """
-    # if type(b) is list:
-    #     assert len(a) == len(b) and len(a[0]) == len(b[0])
-    #     # return [[a[n][m] * b[n][m] for m in range(len(a[0]))]
-    #     #                            for n in range(len(a))]
-    #     return [*map(lambda ra, rb: [ai * bi for ai, bi in zip(ra, rb)], a, b)]
-    # else:
-    #     # return [[a[n][m] * b for m in range(len(a[0]))]
-    #     #                      for n in range(len(a))]
-    #     return [*map(lambda ra: [ai * b for ai in ra], a)]
-
     if type(b) is not list:
         b = [b] * len(a)
     return [*map(vec_mul, a, b)]
@@ -367,14 +337,14 @@ def mat_mul(a, b):
 
 def mat_div(a, b):
     """
-    Computes the element-wise quotient of two matrices
+    Divide two matrices or a matrix and a scalar element-wise
 
     Parameters
     ----------
     a: list[list]
         A matrix of scalar values
     b: list[list], scalar
-        A matrix of scalar values
+        A matrix of scalar values or a scalar value.
 
     Returns
     -------
@@ -382,16 +352,6 @@ def mat_div(a, b):
         A matrix quotient of a and b
 
     """
-    # if type(b) is list:
-    #     assert len(a) == len(b) and len(a[0]) == len(b[0])
-    #     # return [[a[n][m] / b[n][m] for m in range(len(a[0]))]
-    #     #                            for n in range(len(a))]
-    #     return [*map(lambda ra, rb: [ai / bi for ai, bi in zip(ra, rb)], a, b)]
-    # else:
-    #     # return [[a[n][m] / b for m in range(len(a[0]))]
-    #     #                      for n in range(len(a))]
-    #     return [*map(lambda ra: [ai / b for ai in ra], a)]
-
     if type(b) is not list:
         b = [b] * len(a)
     return [*map(vec_div, a, b)]
@@ -851,6 +811,28 @@ def mat_extend(m, ext, val=0, mode=None, **kwargs):
         dimension respectively
     val: scalar
         A constant value used for the new elements
+    mode: str, None
+        A string representing the mode in which the newly added
+        elements will be evaluated. By default, if none is specified,
+        the new elements are all given the specified constant value.
+        If a mode is specified, it must be a string indicating one
+        of the supported modes, and **kwargs will contain parameters
+        relative to that specific mode.
+
+        Currently supported modes:
+
+        "range": Extends the range of values in the matrix in both
+                 dimensions by continuing the progression backwards
+                 from the minimum up to the lower bound, and forwards
+                 from the maximum up to the upper bound. That is, for
+                 a 2D range [a,b]x[c,d] both ranges [a,b] and [b,c] are
+                 extended. Each element of the matrix is supposed to be
+                 a 2-tuple (2D point) and the range a linear progression.
+
+                 kwargs:  ds (int) - Step of the progression
+    kwargs:
+        The arguments relative to the extension mode, if any (see 'mode'
+        parameter)
 
     Returns
     -------
@@ -1162,7 +1144,7 @@ def vec_dims_equal(a, b):
 
 def vec_add(a, b):
     """
-    Computes the sum of two vectors, or of a vector and a scalar
+    Add two vectors or a vector and a scalar element-wise
 
     Parameters
     ----------
@@ -1188,7 +1170,7 @@ def vec_add(a, b):
 
 def vec_sub(a, b):
     """
-    Computes the difference of two vectors, or of a vector and a scalar
+    Subtract two vectors or a vector and a scalar element-wise
 
     Parameters
     ----------
@@ -1214,7 +1196,7 @@ def vec_sub(a, b):
 
 def vec_mul(a, b):
     """
-    Computes the vector-vector or vector-scalar element-wise product
+    Multiply two vectors or a vector and a scalar element-wise
 
     Parameters
     ----------
@@ -1240,7 +1222,7 @@ def vec_mul(a, b):
 
 def vec_div(a, b):
     """
-    Computes the vector-vector or vector-scalar element-wise quotient
+    Divide two vectors or a vector and a scalar element-wise
 
     Parameters
     ----------

@@ -1,17 +1,21 @@
+"""
+Systems' base class. The mother of all filters.
+
+"""
 
 
 class System(object):
     """
     Abstract base class for all types of systems
 
-    This class defines the interface for a system with n inputs
-    and m outputs (a MIMO system, loosely speaking).
+    This class defines the interface for a filter with n inputs
+    and m outputs (a MIMO filter, loosely speaking).
 
     Attributes
     ----------
     inputs: list[Signal]
         An array of input signals [x1,...,xn]
-    outputs: list[Signal]
+    _outputs: list[Signal]
         (read-only)
         An array of output signals [y1,...,ym]
 
@@ -38,22 +42,20 @@ class System(object):
         inputs: list[Signal], Signal, optional
             An array of input signals to be processed. If not given, the
             input is taken from the instance attribute. If given, it will
-            be assigned to the instance attribute. It also accepts a
-            single Signal instance, which is internally wrapped in a list.
+            override the instance attribute. It also accepts a single
+            Signal instance, which is internally wrapped in a list.
 
         Returns
         -------
-        list[Signals]
+        list[Signal]
             An array of output signals
 
         """
-        inputs = inputs if type(inputs) is list else [inputs]
-        self.inputs = inputs or self.inputs
+        if inputs:
+            self.inputs = inputs if type(inputs) is list else [inputs]
 
         if not self.inputs:
-            raise ValueError(
-                "No input signals"
-            )
+            raise RuntimeError("No input signals")
 
         self._outputs = self._sysop()
         return self._outputs
@@ -66,8 +68,7 @@ class System(object):
         inputs with the system's model (e.g. the impulse response for
         linear systems) in order to generate the output.
         Generally, given n input signals this function produces m output
-        signals according to the relation [y1,...,ym] = S([x1,...,xn], G),
-        where G represents the system's model.
+        signals according to the relation [y1,...,ym] = S([x1,...,xn]).
 
         Returns
         -------

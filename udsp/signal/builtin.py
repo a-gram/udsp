@@ -1,6 +1,5 @@
 """
-This module defines n-dimensional built-in signals that 
-are commonly used in Digital Signal Processing.
+Built-in signals commonly used in DSP
 
 """
 
@@ -129,6 +128,42 @@ class Gaussian1D(Builtin1D):
         return _mtx.vec_new(len(x), f)
 
 
+class Sinewave1D(Builtin1D):
+    """
+    Sine wave signal
+
+    Attributes
+    ----------
+    a: float
+        The amplitude of the wave
+    f: float
+        The frequency of the wave
+    p: float
+        The phase of the wave
+
+    """
+    def __init__(self,
+                 a=1,
+                 f=1,
+                 p=0,
+                 **kwargs):
+
+        super().__init__(**kwargs)
+        self.a = a
+        self.f = f
+        self.p = p
+        self.make()
+
+    def _generate(self, x):
+
+        def f(n):
+            return self.a * _math.sin(
+                2 * _math.pi * self.f * x[n] + self.p
+            )
+
+        return _mtx.vec_new(len(x), f)
+
+
 class Logistic1D(Builtin1D):
     """
     Logistic signal
@@ -184,12 +219,16 @@ class Noise1D(Builtin1D, RNGMixin):
             --------------------------------------------------------
             uniform   "a": <float> - The lower bound of the interval
                       "b": <float> - The upper bound of the interval
+
             normal    "sigma": <float> - The standard deviation
                       "trunc": (a,b) - Truncates the p.d.f. in (a,b)
+
             lorentz   "gamma": <float> - The scale of the p.d.f.
                       "trunc": (a,b) - Truncates the p.d.f. in (a,b)
+
             laplace   "lambd": <float> - The scale of the p.d.f.
                       "trunc": (a,b) - Truncates the p.d.f. in (a,b)
+
         kwargs: dict
             Optional arguments
 
@@ -335,12 +374,16 @@ class Noise2D(Builtin2D, RNGMixin):
             --------------------------------------------------------
             uniform   "a": <float> - The lower bound of the interval
                       "b": <float> - The upper bound of the interval
+
             normal    "sigma": <float> - The standard deviation
                       "trunc": (a,b) - Truncates the p.d.f. in (a,b)
+
             lorentz   "gamma": <float> - The scale of the p.d.f.
                       "trunc": (a,b) - Truncates the p.d.f. in (a,b)
+
             laplace   "lambd": <float> - The scale of the p.d.f.
                       "trunc": (a,b) - Truncates the p.d.f. in (a,b)
+
         kwargs: dict
             Optional arguments
 

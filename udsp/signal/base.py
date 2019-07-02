@@ -1,5 +1,5 @@
 """
-This module defines all signal-related base classes.
+Signals' base class. The mother of all signals.
 
 """
 
@@ -640,7 +640,7 @@ class Signal(object):
         """
         Normalizes the signal in a specified interval
 
-        Applies the generalized feature scaling to scale and
+        Applies the "generalized feature scaling" to normalize and
         shift the values of the signal into a specified interval.
 
         Parameters

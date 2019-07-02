@@ -1,5 +1,5 @@
 """
-This module defines generic concrete implementations of the signal
+Generic concrete implementations of the signal
 abstract class for n-dimensional signals.
 
 """

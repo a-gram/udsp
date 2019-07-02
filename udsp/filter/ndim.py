@@ -3,40 +3,10 @@ Linear systems
 
 """
 
-from .base import System as _System
+from .fbase import Filter, FFilter
 from ..signal.ndim import Signal1D as _Signal1D
 from ..signal.ndim import Signal2D as _Signal2D
-from ..signal.transforms import Transforms as _Transforms
 from ..core import mtx as _mtx
-
-
-class Filter(_System):
-    """
-    Abstract base class for LTSI systems
-
-    Attributes
-    ----------
-    h: Signal
-        A signal representing the system's impulse response
-
-    """
-    def __init__(self, h, **kwargs):
-        super().__init__()
-        self._h = h
-
-    def _sysop(self):
-        """
-        A time-domain operation on the inputs
-
-        For LTSI systems this function is a convolution. Since it
-        is a 1-to-1 mapping it will have 1 input and 1 output.
-
-        """
-        raise NotImplementedError
-
-    @property
-    def h(self):
-        return self._h.clone()
 
 
 class Filter1D(Filter):
@@ -101,62 +71,6 @@ class Filter2D(Filter):
         csignal = self.inputs[0].clone()
         csignal._Y = y
         return [csignal]
-
-
-class FFilter(_System):
-    """
-    Abstract base class for frequency-space LTSI systems
-
-    Attributes
-    ----------
-    h: Signal
-        A signal representing the time-domain impulse response.
-    hf: Signal
-        The system's transfer function
-
-    """
-    def __init__(self, h, **kwargs):
-
-        super().__init__()
-        self._h = h
-        self._hf = None
-
-    def process(self, inputs=None):
-
-        signals = []
-
-        TO_FREQUENCY = _Transforms.FREQUENCY_DOMAIN
-
-        # transform the input, if needed
-        if type(inputs) is list:
-            signals.append(
-                inputs[0].transform(TO_FREQUENCY)
-            )
-        else:
-            signals.append(
-                inputs.transform(TO_FREQUENCY)
-            )
-
-        # pad and transform the IR, if needed
-        if signals and self._h.domain != TO_FREQUENCY:
-            self._hf = self._h.zero_pad_to(signals[0])\
-                              .transform(TO_FREQUENCY)
-
-        return super().process(signals)
-
-    def _sysop(self):
-        """
-        A frequency domain operation on the inputs
-
-        For LTSI systems this function is a product. Since it
-        is a 1-to-1 mapping it will have 1 input and 1 output.
-
-        """
-        raise NotImplementedError
-
-    @property
-    def h(self):
-        return self._hf.clone()
 
 
 class FFilter1D(FFilter):
