@@ -511,6 +511,71 @@ class MatrixTestCase(unittest.TestCase):
         }
         self.__do_test(mtx.mat_extend, test_data)
 
+    def test_mat_bin(self):
+
+        a1 = [[1, -3,  0],
+              [2, -1,  5],
+              [0,  4, -3]]
+        a2 = [[1, 3, 1],
+              [1, 2, 3],
+              [2, 2, 2]]
+
+        def sum_all(e):
+            return 0, e
+
+        def sum_positive_negative(e):
+            return e < 0, e
+
+        def sum_2_ranges(e):
+            return e > 2, e
+
+        def sum_3_ranges(e):
+            return (0 if -5 <= e < -2 else
+                   (1 if -2 <= e < 2 else 2), e)
+
+        def count_zeroes(e):
+            return 0 if e == 0 else None, 1
+
+        def histo(e):
+            return e - 1, 1
+
+        # Test data
+        test_data = {
+            "Input 1": {
+                "args": [a1, 1, sum_all],
+                "expect": [5]
+            },
+            "Input 2": {
+                "args": [a1, 2, sum_positive_negative],
+                "expect": [12, -7]
+            },
+            "Input 3": {
+                "args": [a1, 2, sum_2_ranges],
+                "expect": [-4, 9]
+            },
+            "Input 4": {
+                "args": [a1, 3, sum_3_ranges],
+                "expect": [-6, 0, 11]
+            },
+            "Input 5": {
+                "args": [a1, 1, count_zeroes],
+                "expect": [2]
+            },
+            "Input 6": {
+                "args": [a2, 3, histo],
+                "expect": [3, 4, 2]
+            },
+            "Input 7": {
+                "args": [a1, 1, sum_all, 5],
+                "expect": [10]
+            },
+            "Input 8": {
+                "args": [[], 2, sum_all],
+                "expect": [0, 0]
+            }
+        }
+        self.__do_test(mtx.mat_bin, test_data)
+
     def test_vec_extend(self):
 
         a1 = [1, 2, 3, 4]
@@ -616,3 +681,64 @@ class MatrixTestCase(unittest.TestCase):
             },
         }
         self.__do_test(mtx.vec_extend, test_data)
+
+    def test_vec_bin(self):
+
+        a1 = [1, -3, 0, 2, -1, 5, 0, 4, -3]
+        a2 = [1, 3, 1, 1, 2, 3, 2, 2, 2]
+
+        def sum_all(e):
+            return 0, e
+
+        def sum_positive_negative(e):
+            return e < 0, e
+
+        def sum_2_ranges(e):
+            return e > 2, e
+
+        def sum_3_ranges(e):
+            return (0 if -5 <= e < -2 else
+                   (1 if -2 <= e < 2 else 2), e)
+
+        def count_zeroes(e):
+            return 0 if e == 0 else None, 1
+
+        def histo(e):
+            return e - 1, 1
+
+        # Test data
+        test_data = {
+            "Input 1": {
+                "args": [a1, 1, sum_all],
+                "expect": [5]
+            },
+            "Input 2": {
+                "args": [a1, 2, sum_positive_negative],
+                "expect": [12, -7]
+            },
+            "Input 3": {
+                "args": [a1, 2, sum_2_ranges],
+                "expect": [-4, 9]
+            },
+            "Input 4": {
+                "args": [a1, 3, sum_3_ranges],
+                "expect": [-6, 0, 11]
+            },
+            "Input 5": {
+                "args": [a1, 1, count_zeroes],
+                "expect": [2]
+            },
+            "Input 6": {
+                "args": [a2, 3, histo],
+                "expect": [3, 4, 2]
+            },
+            "Input 7": {
+                "args": [a1, 1, sum_all, 5],
+                "expect": [10]
+            },
+            "Input 8": {
+                "args": [[], 2, sum_all],
+                "expect": [0, 0]
+            }
+        }
+        self.__do_test(mtx.vec_bin, test_data)

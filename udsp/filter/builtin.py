@@ -53,7 +53,7 @@ class TriangularFilter1D(Filter1D):
         # hsum = 0
         # h = []
         # for x in range(n):
-        #     hi = b + (1 - abs(x - a) / a) * k
+        #     hi = b + (n - abs(x - a)) * k
         #     h.append(hi)
         #     hsum += hi
         # h = map(lambda x: x / hsum, h)
@@ -85,7 +85,7 @@ class GaussianFilter1D(Filter1D):
         # hsum = 0
         # h = []
         # for x in range(n):
-        #     hi = 2.71828**-((x - a)**2 / (2 * s**2)) * k
+        #     hi = b + _math.exp(-(x - a)**2 / (2 * s**2)) * k
         #     h.append(hi)
         #     hsum += hi
         # h = map(lambda x: x / hsum, h)
@@ -262,3 +262,67 @@ class DiffFilter2D(Filter2D):
         self._h = _Signal2D(y=hy)
         dy = super()._sysop()[0]
         return [dx, dy]
+
+
+class Laplacian2D(Filter2D):
+    """
+    Second order differential filter
+
+    Parameters
+    ----------
+    method: {"laplace4","laplace8"}
+        Derivation method
+
+    """
+    _KERNELS = {
+        "laplace4": [[ 0, -1,  0],
+                     [-1,  4, -1],
+                     [ 0, -1,  0]],
+
+        "laplace8": [[-1, -1, -1],
+                     [-1,  8, -1],
+                     [-1, -1, -1]]
+    }
+
+    def __init__(self, method="laplace8"):
+        super().__init__(self._KERNELS[method])
+
+
+class LoGFilter2D(Filter2D):
+    """
+    Laplacian of Gaussian filter
+
+    """
+    def __init__(self, n=5, s=0.6, k=1, b=0):
+
+        def fun(x, y):
+            ks1 = 2 * s**2
+            ks2 = 2 * _math.pi * s**6
+            fac1 = ((x - a)**2 + (y - a)**2 - ks1) / ks2
+            fac2 = _math.exp(-((x - a)**2 + (y - a)**2) / ks1)
+            return b + (fac1 * fac2) * k
+
+        def sign(num):
+            return 1 if num >= 0 else -1
+
+        a = n // 2
+        h = _mtx.mat_new(n, n, fun)
+
+        # Rescale the LoG so that the sum of elements is zero
+        A, B = _mtx.mat_bin(h, 2, lambda e: (e < 0, abs(e)))
+        ka = A / (A + B)
+        kb = 1 - ka
+        Ca = ka * abs(A - B)
+        Cb = kb * abs(A - B)
+        maxN, minN = max(A, B), min(A, B)
+        maxC, minC = max(Ca, Cb), min(Ca, Cb)
+        sign_maxN = 1 if maxN == A else -1
+
+        for i, row in enumerate(h):
+            for j, hij in enumerate(row):
+                if sign(h[i][j]) == sign_maxN:
+                    h[i][j] = hij * (1 - 1 / maxN * maxC)
+                else:
+                    h[i][j] = hij * (1 + 1 / minN * minC)
+
+        super().__init__(h)

@@ -821,15 +821,18 @@ def mat_extend(m, ext, val=0, mode=None, **kwargs):
 
         Currently supported modes:
 
-        "range": Extends the range of values in the matrix in both
-                 dimensions by continuing the progression backwards
-                 from the minimum up to the lower bound, and forwards
-                 from the maximum up to the upper bound. That is, for
-                 a 2D range [a,b]x[c,d] both ranges [a,b] and [b,c] are
-                 extended. Each element of the matrix is supposed to be
-                 a 2-tuple (2D point) and the range a linear progression.
+        "range": Extend a range of definition where each element of the
+                 matrix represents a 2D point in a 2D range [a,b]x[c,d].
+                 The range is extended by continuing the progression
+                 (supposed to be linear) forward and backward, i.e.
+                 [..., a-2*ds, a-ds, a,..., b, b+ds, b+2*ds, ...] (and
+                 similarly for [c,d]).
 
                  kwargs:  ds (int) - Step of the progression
+
+        "mirror": Extend the matrix by mirroring it along both dimensions.
+
+                 kwargs:
     kwargs:
         The arguments relative to the extension mode, if any (see 'mode'
         parameter)
@@ -844,7 +847,7 @@ def mat_extend(m, ext, val=0, mode=None, **kwargs):
         return []
     if not ext or len(ext) < 4 or min(ext) < 0:
         raise ValueError(
-            "Invalid padding size. Must be a 4-tuple of int >= 0"
+            "Invalid extension size. Must be a 4-tuple of int >= 0"
         )
 
     m_rows, m_cols = mat_dim(m)
@@ -887,6 +890,30 @@ def mat_extend(m, ext, val=0, mode=None, **kwargs):
             ni = ns + (i - top) * ds
             for j in range(me_cols):
                 me[i][j] = (ni, ms + (j - left) * ds)
+
+    elif mode == "mirror":
+
+        mright = left + m_cols
+        # Extend top-bottom
+        for i in range(top):
+            n1 = top - 1 - i
+            n2 = top + (i % m_rows)
+            me[n1][left: mright] = me[n2][left: mright]
+        for i in range(bottom):
+            n1 = top + m_rows + i
+            n2 = top + m_rows - 1 - (i % m_rows)
+            me[n1][left: mright] = me[n2][left: mright]
+        # Extend left-right
+        for n in range(me_rows):
+            for i in range(left):
+                m1 = left - 1 - i
+                m2 = left + (i % m_cols)
+                me[n][m1] = me[n][m2]
+            for i in range(right):
+                m1 = mright + i
+                m2 = mright - 1 - (i % m_cols)
+                me[n][m1] = me[n][m2]
+
     else:
         raise ValueError("Invalid extension mode.")
     return me
@@ -942,6 +969,39 @@ def mat_to(newtype, a):
         return [[newtype(e) for e in row] for row in a]
     else:
         return [[e for e in row] for row in a]
+
+
+def mat_bin(m, nbins, f, init=0):
+    """
+    Accumulate elements of a matrix into bins
+
+    Parameters
+    ----------
+    m: list[list]
+        A matrix of scalar values
+    nbins: int
+        The number of bins (accumulators) that will be returned as a list.
+    f: callable
+        A function f(m)->[bo,...,bn] that maps the matrix into the "bin space".
+        Accepts one argument (a matrix element) and returns a 2-tuple
+        (i, val), where 'i' is the bin index to be incremented and 'val'
+        the increment value. If no bin shall be incremented, set i to None.
+    init: scalar, optional
+        A scalar value used to initialize the bins. Defaults to 0.
+
+    Returns
+    -------
+    list
+        A list of bins with the accumulated values.
+
+    """
+    acc = [init] * nbins
+    for row in m:
+        for e in row:
+            i, val = f(e)
+            if i is not None:
+                acc[i] += val
+    return acc
 
 
 def mat_toeplitz(h, g):
@@ -1592,6 +1652,38 @@ def vec_to(newtype, v):
         return [newtype(e) for e in v]
     else:
         return [e for e in v]
+
+
+def vec_bin(v, nbins, f, init=0):
+    """
+    Accumulate elements of a vector into bins
+
+    Parameters
+    ----------
+    v: list[]
+        A vector of scalar values
+    nbins: int
+        The number of bins (accumulators) that will be returned as a list.
+    f: callable
+        A function f(v)->[bo,...,bn] that maps the vector into the "bin space".
+        Accepts one argument (a vector element) and returns a 2-tuple
+        (i, val), where 'i' is the bin index to be incremented and 'val'
+        the increment value. If no bin shall be incremented, set i to None.
+    init: scalar, optional
+        A scalar value used to initialize the bins. Defaults to 0.
+
+    Returns
+    -------
+    list
+        A list of bins with the accumulated values.
+
+    """
+    acc = [init] * nbins
+    for e in v:
+        i, val = f(e)
+        if i is not None:
+            acc[i] += val
+    return acc
 
 
 # ---------------------------------------------------------
