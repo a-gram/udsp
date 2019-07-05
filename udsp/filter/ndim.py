@@ -3,13 +3,13 @@ Linear systems
 
 """
 
-from .fbase import Filter, FFilter
+from .fbase import ConvFilter, FreqFilter
 from ..signal.ndim import Signal1D as _Signal1D
 from ..signal.ndim import Signal2D as _Signal2D
 from ..core import mtx as _mtx
 
 
-class Filter1D(Filter):
+class ConvFilter1D(ConvFilter):
     """
     Specialized class for 1D LTSI systems
 
@@ -26,18 +26,27 @@ class Filter1D(Filter):
         a = len(h) // 2
         y = _mtx.vec_new(len(x))
 
+        xe = self._extend_input(x, (a, a), _mtx.vec_extend)
+        dn = a if xe is not x else 0
+
         for n in range(len(x)):
             for i in range(len(h)):
-                p = n + a - i
-                if 0 <= p < len(x):
-                    y[n] += x[p] * h[i]
+                p = n + dn + a - i
+                # Ignore the missing values if the input
+                # signal has not been extended
+                if (self.extmode == self.BORDER_IGNORE and
+                     not (0 <= p < len(x))):
+                    yn = 0
+                else:
+                    yn = xe[p] * h[i]
+                y[n] += yn
 
         csignal = self.inputs[0].clone()
         csignal._Y = y
         return [csignal]
 
 
-class Filter2D(Filter):
+class ConvFilter2D(ConvFilter):
     """
     Specialized class for 2D LTSI systems
 
@@ -57,6 +66,11 @@ class Filter2D(Filter):
         J, I = len(h), len(h[0])
         y = _mtx.mat_new(N, M)
 
+        xe = self._extend_input(x, (ay, ay, ax, ax),
+                                _mtx.mat_extend)
+
+        dn, dm = (ay, ax) if xe is not x else (0, 0)
+
         def inrange(pt):
             return (0 <= pt[0] < N) and (0 <= pt[1] < M)
 
@@ -64,16 +78,23 @@ class Filter2D(Filter):
             for m in range(M):
                 for j in range(J):
                     for i in range(I):
-                        p = (n + ay - j, m + ax - i)
-                        if inrange(p):
-                            y[n][m] += x[p[0]][p[1]] * h[j][i]
+                        p = (n + dn + ay - j,
+                             m + dm + ax - i)
+                        # Ignore the missing values if the input
+                        # signal has not been extended
+                        if (self.extmode == self.BORDER_IGNORE and
+                             not inrange(p)):
+                            ynm = 0
+                        else:
+                            ynm = xe[p[0]][p[1]] * h[j][i]
+                        y[n][m] += ynm
 
         csignal = self.inputs[0].clone()
         csignal._Y = y
         return [csignal]
 
 
-class FFilter1D(FFilter):
+class FreqFilter1D(FreqFilter):
     """
     Specialized class for 1D frequency-space LTSI systems
 
@@ -94,7 +115,7 @@ class FFilter1D(FFilter):
         return [csignal]
 
 
-class FFilter2D(FFilter):
+class FreqFilter2D(FreqFilter):
     """
     Specialized class for 2D frequency-space LTSI systems
 

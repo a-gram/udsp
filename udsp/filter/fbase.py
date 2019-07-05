@@ -7,19 +7,35 @@ from .base import System
 from ..signal.transforms import Transforms as _Transforms
 
 
-class Filter(System):
+class ConvFilter(System):
     """
-    Abstract base class for LTSI systems
+    Abstract base class for LTSI  systems
 
     Attributes
     ----------
     h: Signal
         A signal representing the filter's impulse response
+    extmode: str
+        A string indicating how to extend the input signal
+        to solve the borders issue. Default is ignore mode.
 
     """
+    BORDER_IGNORE = "ignore"
+    BORDER_MIRROR = "mirror"
+    BORDER_STRETCH = "stretch"
+    BORDER_REPEAT = "repeat"
+
+    EXT_MODES = {
+        BORDER_IGNORE,
+        BORDER_MIRROR,
+        BORDER_STRETCH,
+        BORDER_REPEAT
+    }
+
     def __init__(self, h, **kwargs):
         super().__init__()
         self._h = h
+        self.extmode = self.BORDER_IGNORE
 
     def _sysop(self):
         """
@@ -31,12 +47,36 @@ class Filter(System):
         """
         raise NotImplementedError
 
+    def _extend_input(self, x, ext, fun):
+        """
+        Extend the input signal to fix the borders issue
+
+        Parameters
+        ----------
+        x: list[]
+            Input signal
+        ext: tuple
+            The extension sizes
+        fun: function
+            Extension function
+
+        Returns
+        -------
+        list[]
+            The extended signal
+
+        """
+        if self.extmode == self.BORDER_IGNORE:
+            return x
+        else:
+            return fun(x, ext, mode=self.extmode)
+
     @property
     def h(self):
         return self._h.clone()
 
 
-class FFilter(System):
+class FreqFilter(System):
     """
     Abstract base class for frequency-space LTSI systems
 

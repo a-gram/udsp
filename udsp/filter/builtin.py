@@ -5,7 +5,7 @@ Built-in linear filters
 
 import math as _math
 
-from .ndim import Filter1D, Filter2D
+from .ndim import ConvFilter1D, ConvFilter2D
 from ..signal.ndim import Signal2D as _Signal2D
 from ..core import mtx as _mtx
 
@@ -15,7 +15,7 @@ from ..core import mtx as _mtx
 # ---------------------------------------------------------
 
 
-class BoxFilter1D(Filter1D):
+class BoxFilter1D(ConvFilter1D):
     """
     Box (average) filter
 
@@ -29,7 +29,7 @@ class BoxFilter1D(Filter1D):
         super().__init__([1 / n] * n)
 
 
-class TriangularFilter1D(Filter1D):
+class TriangularFilter1D(ConvFilter1D):
     """
     Triangular filter
 
@@ -60,7 +60,7 @@ class TriangularFilter1D(Filter1D):
         super().__init__(h)
 
 
-class GaussianFilter1D(Filter1D):
+class GaussianFilter1D(ConvFilter1D):
     """
     Gaussian filter
 
@@ -92,7 +92,7 @@ class GaussianFilter1D(Filter1D):
         super().__init__(h)
 
 
-class DiffFilter1D(Filter1D):
+class DiffFilter1D(ConvFilter1D):
     """
     First order differential filter
 
@@ -112,7 +112,7 @@ class DiffFilter1D(Filter1D):
         super().__init__(self._KERNELS[method])
 
 
-class LaplacianFilter1D(Filter1D):
+class LaplacianFilter1D(ConvFilter1D):
     """
     Second order differential filter
 
@@ -126,7 +126,7 @@ class LaplacianFilter1D(Filter1D):
 # ---------------------------------------------------------
 
 
-class BoxFilter2D(Filter2D):
+class BoxFilter2D(ConvFilter2D):
     """
     Box (average) filter
 
@@ -141,7 +141,7 @@ class BoxFilter2D(Filter2D):
         super().__init__(h)
 
 
-class TriangularFilter2D(Filter2D):
+class TriangularFilter2D(ConvFilter2D):
     """
     Triangular filter
 
@@ -180,7 +180,7 @@ class TriangularFilter2D(Filter2D):
         super().__init__(h)
 
 
-class GaussianFilter2D(Filter2D):
+class GaussianFilter2D(ConvFilter2D):
     """
     Gaussian filter
 
@@ -205,7 +205,7 @@ class GaussianFilter2D(Filter2D):
         super().__init__(h)
 
 
-class DiffFilter2D(Filter2D):
+class DiffFilter2D(ConvFilter2D):
     """
     First order differential filter
 
@@ -264,7 +264,7 @@ class DiffFilter2D(Filter2D):
         return [dx, dy]
 
 
-class Laplacian2D(Filter2D):
+class LaplacianFilter2D(ConvFilter2D):
     """
     Second order differential filter
 
@@ -288,7 +288,7 @@ class Laplacian2D(Filter2D):
         super().__init__(self._KERNELS[method])
 
 
-class LoGFilter2D(Filter2D):
+class LoGFilter2D(ConvFilter2D):
     """
     Laplacian of Gaussian filter
 

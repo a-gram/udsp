@@ -33,6 +33,9 @@ may be replaced in future with something more performant and the
 modifications needed to the code will be limited to this module if
 using this API.
 
+TODO: This module was born "procedural" but it should really
+      be redesigned with an OOP approach to abstract away the
+      matrix/vector distinction made by these functions.
 
 """
 
@@ -832,7 +835,18 @@ def mat_extend(m, ext, val=0, mode=None, **kwargs):
 
         "mirror": Extend the matrix by mirroring it along both dimensions.
 
-                 kwargs:
+                  kwargs:
+
+        "stretch": Extend the matrix by repeating the values at the
+                   boundaries along both dimensions.
+
+                   kwargs:
+
+        "repeat": Extend the matrix by repeating it along both dimensions
+                  as if it was periodic.
+
+                  kwargs:
+
     kwargs:
         The arguments relative to the extension mode, if any (see 'mode'
         parameter)
@@ -891,27 +905,55 @@ def mat_extend(m, ext, val=0, mode=None, **kwargs):
             for j in range(me_cols):
                 me[i][j] = (ni, ms + (j - left) * ds)
 
-    elif mode == "mirror":
+    elif mode in {"mirror", "stretch", "repeat"}:
 
+        stretch = mode == "stretch"
         mright = left + m_cols
+        mtop = top + m_rows
+
+        def ftop(x):
+            ii = 0 if stretch else x % m_rows
+            return top + ii
+
+        def fbot(x):
+            ii = 0 if stretch else x % m_rows
+            return mtop - 1 - ii
+
+        def fleft(x):
+            ii = 0 if stretch else x % m_cols
+            return left + ii
+
+        def fright(x):
+            ii = 0 if stretch else x % m_cols
+            return mright - 1 - ii
+
+        # Set the extension functions based on mode
+        if mode in {"mirror", "stretch"}:
+            ext_t, ext_b = ftop, fbot
+            ext_l, ext_r = fleft, fright
+        else:
+            ext_t, ext_b = fbot, ftop
+            ext_l, ext_r = fright, fleft
+
         # Extend top-bottom
         for i in range(top):
             n1 = top - 1 - i
-            n2 = top + (i % m_rows)
+            n2 = ext_t(i)
             me[n1][left: mright] = me[n2][left: mright]
         for i in range(bottom):
-            n1 = top + m_rows + i
-            n2 = top + m_rows - 1 - (i % m_rows)
+            n1 = mtop + i
+            n2 = ext_b(i)
             me[n1][left: mright] = me[n2][left: mright]
+
         # Extend left-right
         for n in range(me_rows):
             for i in range(left):
                 m1 = left - 1 - i
-                m2 = left + (i % m_cols)
+                m2 = ext_l(i)
                 me[n][m1] = me[n][m2]
             for i in range(right):
                 m1 = mright + i
-                m2 = mright - 1 - (i % m_cols)
+                m2 = ext_r(i)
                 me[n][m1] = me[n][m2]
 
     else:
@@ -1567,18 +1609,33 @@ def vec_extend(v, ext, val=0, mode=None, **kwargs):
 
         Currently supported modes:
 
-        "range": Extends the range of values in the vector at both
-                 extrema by continuing the progression backwards from
-                 the minimum up to the lower bound, and forwards from
-                 the maximum up to the upper bound. The range is
-                 supposed to be a linear progression.
+        "range": Extend a range of definition where each element of the
+                 vector represents a 1D point in a 1D range [a,b].
+                 The range is extended by continuing the progression
+                 (supposed to be linear) forward and backward, i.e.
+                 [..., a-2*ds, a-ds, a,..., b, b+ds, b+2*ds, ...].
 
-                 margs:  ds (int) - Step of the progression
+                 kwargs:  ds (int) - Step of the progression
 
                  Examples:
 
                  ext=(2,3), ds=1: [2, 3, 4] => [0, 1, 2, 3, 4, 5, 6, 7]
                  ext=(1,2), ds=0.5: [5.5, 6, 6.5] => [5, 5.5, 6, 6.5, 7, 7.5]
+
+        "mirror": Extend the vector by mirroring it backwards and forwards.
+
+                  kwargs:
+
+        "stretch": Extend the vector by repeating the first and last value
+                   backwards and forwards.
+
+                   kwargs:
+
+        "repeat": Extend the vector by repeating it backwards and forwards
+                  as if it was periodic.
+
+                  kwargs:
+
     kwargs:
         The arguments relative to the extension mode, if any (see 'mode'
         parameter)
@@ -1621,9 +1678,42 @@ def vec_extend(v, ext, val=0, mode=None, **kwargs):
         #     ve[dim - right + i] = xe + (i + 1) * ds
 
         # Extend backwards
-        ve[:left] = [xs - (left - i) * ds for i in range(left)]
+        ve[:left] = [xs - (left - i) * ds
+                     for i in range(left)]
         # Extend forwards
-        ve[left + len(v):] = [xe + (i + 1) * ds for i in range(right)]
+        ve[left + len(v):] = [xe + (i + 1) * ds
+                              for i in range(right)]
+
+    elif mode in {"mirror", "stretch", "repeat"}:
+
+        stretch = mode == "stretch"
+        N = len(v)
+
+        def fleft(x):
+            ii = 0 if stretch else x % N
+            return left + ii
+
+        def fright(x):
+            ii = 0 if stretch else x % N
+            return left + N - 1 - ii
+
+        # Set the extension functions based on mode
+        if mode in {"mirror", "stretch"}:
+            ext_l, ext_r = fleft, fright
+        else:
+            ext_l, ext_r = fright, fleft
+
+        # Extend backwards
+        for i in range(left):
+            n1 = left - 1 - i
+            n2 = ext_l(i)
+            ve[n1] = ve[n2]
+        # Extend forwards
+        for i in range(right):
+            n1 = left + N + i
+            n2 = ext_r(i)
+            ve[n1] = ve[n2]
+
     else:
         raise ValueError("Invalid extension mode.")
     return ve
@@ -1705,7 +1795,8 @@ def conv2d(h, x):
     Returns
     -------
     list[list]
-        A matrix representing the (partial) convolution y = h * x
+        A matrix the same size as the input representing the
+        (partial) convolution y = h * x
 
     """
     ax = len(h[0]) // 2
@@ -1747,7 +1838,8 @@ def conv2d_mat(h, x, warning=True):
     """
     # TODO: implement this with generators
     if warning:
-        raise RuntimeWarning("\n\nWARNING: This method is for demonstration "
+        raise RuntimeWarning("\n\nWARNING: This method is currently not"
+                             "optimized and for demonstration "
                              "purposes only. It can choke your computer "
                              "if used on big arrays (hundreds of columns "
                              "and/or rows). You can remove this warning "
