@@ -19,7 +19,7 @@ for specific image formats:
 
 """
 
-import itertools
+import itertools as _itools
 
 from .base import MediaObject, MediaCodec, Metadata
 from .codecs import CodecRegistry
@@ -49,7 +49,7 @@ class Image(MediaObject):
         return self._to_mat(data)
 
     def save(self):
-        # Not implemented
+        # TODO: Not implemented
         pass
 
     @classmethod
@@ -79,7 +79,7 @@ class Image(MediaObject):
         channels = [[] for _ in range(nchans)]
         for sline in data:
             for c in range(nchans):
-                it = itertools.islice(sline, c, None, nchans)
+                it = _itools.islice(sline, c, None, nchans)
                 row = _mtx.vec_new(0, it)
                 channels[c].append(row)
         return channels
@@ -102,7 +102,7 @@ class Audio(MediaObject):
         return self._to_mat(data)
 
     def save(self):
-        # Not implemented
+        # TODO: Not implemented
         pass
 
     @classmethod
@@ -110,8 +110,14 @@ class Audio(MediaObject):
         cls._codecs = reg
 
     def _to_mat(self, data):
-        # Not implemented
-        pass
+
+        nchans = self.metadata.channels
+        channels = []
+        for c in range(nchans):
+            it = _itools.islice(data, c, None, nchans)
+            chan = _mtx.vec_new(0, it)
+            channels.append(chan)
+        return channels
 
 
 # ---------------------------------------------------------

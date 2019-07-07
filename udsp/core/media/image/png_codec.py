@@ -32,7 +32,7 @@ class PNGCodec(MediaCodec):
         return data[2]
 
     def encode(self):
-        # Not implemented
+        # TODO: Not implemented
         pass
 
     def get_metadata(self):

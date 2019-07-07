@@ -1719,6 +1719,29 @@ def vec_extend(v, ext, val=0, mode=None, **kwargs):
     return ve
 
 
+def vec_compose(vecs, f):
+    """
+    Compose a sequence of vectors using the given mapping function
+
+    Parameters
+    ----------
+    vecs: list[]
+        A sequence of vectors with equal dimensions
+    f: callable
+        A function that performs the mapping f:vecs->composite,
+        where 'composite' is the resulting vector. The function
+        f(v1[i],...,vn[i]) is applied to all elements of the
+        n vectors for each point.
+
+    Returns
+    -------
+    list[]
+        The composite vector
+
+    """
+    return [*map(f, *vecs)]
+
+
 def vec_to(newtype, v):
     """
     Converts the elements of a vector to a specified scalar type

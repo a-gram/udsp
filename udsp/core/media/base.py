@@ -18,7 +18,7 @@ class Metadata(object):
         The bits per sample
     channels: int
         The number of channels
-    resolution: tuple
+    resolution: int, tuple
         The media resolution
 
     Notes
@@ -171,7 +171,7 @@ class MediaObject(object):
 
         Returns
         -------
-        list
+        list[]
             A list of vectors/matrices representing the media channels
             (i.e. colour planes, audio channels, etc.) in the format that
             is understood by the signal's functions.
@@ -269,8 +269,8 @@ class MediaObject(object):
         """
         Give the media class access to the specified codec registry
 
-        This shall be considered a protected method within the media
-        package to be used in an internal initialization module/function
+        This shall be considered a package-level protected method
+        to be used in an internal initialization module/function
         to set the codec registry that a media class should access
         when creating instances. It must be implemented in concrete
         classes since different media may use different registries.

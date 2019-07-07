@@ -246,6 +246,38 @@ class Noise1D(Builtin1D, RNGMixin):
         return _mtx.vec_new(len(x), f)
 
 
+class MonoAudio(Builtin1D):
+
+    def __init__(self,
+                 path,
+                 **kwargs):
+
+        super().__init__(**kwargs)
+        self._audio = _media.Audio.from_file(path)
+        self._length = (self._audio.metadata.size /
+                        self._audio.metadata.resolution)
+        self._sfreq = self._audio.metadata.resolution
+        self.make()
+
+    def _generate(self, x):
+
+        channels = self._audio.load()
+        # Audio is mono
+        if len(channels) == 1:
+            channel = channels[0]
+        # Audio is stereo
+        elif len(channels) == 2:
+            # Convert to mono
+            channel = _mtx.vec_compose(
+                channels,
+                lambda l, r: round((l + r) / 2)
+            )
+        else:
+            raise RuntimeError("Bug")
+        self._audio = None  # we no longer need it
+        return channel
+
+
 # ---------------------------------------------------------
 #                       2D signals
 # ---------------------------------------------------------
