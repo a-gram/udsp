@@ -247,16 +247,35 @@ class Noise1D(Builtin1D, RNGMixin):
 
 
 class MonoAudio(Builtin1D):
+    """
+    Mono channel audio
 
+    Attributes
+    ----------
+    _audio: Audio
+        The audio source object
+    _bps: int
+        The sample resolution in bits per sample
+
+    Properties
+    ----------
+    sampres: int
+        (read-only) The sample resolution
+
+    """
     def __init__(self,
                  path,
                  **kwargs):
 
-        super().__init__(**kwargs)
-        self._audio = _media.Audio.from_file(path)
-        self._length = (self._audio.metadata.size /
-                        self._audio.metadata.resolution)
-        self._sfreq = self._audio.metadata.resolution
+        audio = _media.Audio.from_file(path)
+        super().__init__(
+            length=(audio.metadata.size /
+                    audio.metadata.resolution),
+            sfreq=audio.metadata.resolution,
+            xunits="s"
+        )
+        self._audio = audio
+        self._bps = self._audio.metadata.bps
         self.make()
 
     def _generate(self, x):
@@ -276,6 +295,72 @@ class MonoAudio(Builtin1D):
             raise RuntimeError("Bug")
         self._audio = None  # we no longer need it
         return channel
+
+    @property
+    def sampres(self):
+        return self._bps
+
+
+class AudioChannel(Builtin1D):
+    """
+    Multi channel audio
+
+    Attributes
+    ----------
+    _audio: Audio
+        The audio source object
+    _id: int
+        The channel number
+    _bps: int
+        The sample resolution in bits per sample
+
+    Properties
+    ----------
+    id: int
+        (read-only) The channel number
+    sampres: int
+        (read-only) The sample resolution
+
+
+    """
+    _audio = None
+
+    def __init__(self, **kwargs):
+
+        super().__init__(**kwargs)
+        self._id = None
+        self._bps = None
+
+    @classmethod
+    def from_file(cls, path):
+
+        audio = _media.Audio.from_file(path)
+        cls._audio = audio.load()
+        channels = []
+        for c, _ in enumerate(cls._audio):
+            channel = cls(
+                length=(audio.metadata.size /
+                        audio.metadata.resolution),
+                sfreq=audio.metadata.resolution,
+                xunits="s"
+            )
+            channel._id = c
+            channel._bps = audio.metadata.bps
+            channel.make()
+            channels.append(channel)
+        cls._audio = None
+        return channels
+
+    def _generate(self, x):
+        return self._audio[self._id]
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def sampres(self):
+        return self._bps
 
 
 # ---------------------------------------------------------
@@ -434,14 +519,24 @@ class Noise2D(Builtin2D, RNGMixin):
 
 
 class GrayImage(Builtin2D):
+    """
+    Grayscale image
 
+    Attributes
+    ----------
+    _image: Image
+        The image source object
+
+    """
     def __init__(self,
                  path,
                  **kwargs):
 
-        super().__init__(**kwargs)
+        image = _media.Image.from_file(path)
+        super().__init__(
+            length=(*reversed(image.metadata.size),)
+        )
         self._image = _media.Image.from_file(path)
-        self._length = (*reversed(self._image.metadata.size),)
         self.make()
 
     def _generate(self, x):
@@ -464,3 +559,52 @@ class GrayImage(Builtin2D):
             raise RuntimeError("Bug")
         self._image = None  # we no longer need it
         return yplane
+
+
+class ImageChannel(Builtin2D):
+    """
+    Multi channel image
+
+    Attributes
+    ----------
+    _image: Image
+        The image source object
+    _id: int
+        The channel number
+
+    Properties
+    ----------
+    id: int
+        (read-only) The channel number
+
+
+    """
+    _image = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._id = None
+
+    @classmethod
+    def from_file(cls, path):
+
+        image = _media.Image.from_file(path)
+        cls._image = image.load()
+        channels = []
+        for c, _ in enumerate(cls._image):
+            channel = cls(
+                length=(*reversed(image.metadata.size),)
+            )
+            channel._id = c
+            channel.make()
+            channels.append(channel)
+        cls._audio = None
+        return channels
+
+    def _generate(self, x):
+        return self._image[self._id]
+
+    @property
+    def id(self):
+        return self._id
+

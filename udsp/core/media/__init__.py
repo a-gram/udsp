@@ -57,26 +57,13 @@ class Image(MediaObject):
         cls._codecs = reg
 
     def _to_mat(self, data):
+        """
+        Convert the media data into matrices
 
-        nchans = self._meta.channels
+        """
+        nchans = self.metadata.channels
+        channels = [_mtx.vec_new(0) for _ in range(nchans)]
 
-        # Solution 1 (slower)
-        #
-        # nrows, ncols = img["size"][1], img["size"][0]
-        # data = [*data]
-        # channels = []
-        #
-        # def pixel(n, m):
-        #     return data[n][m * nchans + pixel.poff]
-        # pixel.poff = 0
-        #
-        # for _ in range(nchans):
-        #     c = _mtx.mat_new(nrows, ncols, pixel)
-        #     channels.append(c)
-        #     pixel.poff += 1
-        # return channels
-
-        channels = [[] for _ in range(nchans)]
         for sline in data:
             for c in range(nchans):
                 it = _itools.islice(sline, c, None, nchans)
@@ -110,9 +97,13 @@ class Audio(MediaObject):
         cls._codecs = reg
 
     def _to_mat(self, data):
+        """
+        Convert the media data into matrices
 
+        """
         nchans = self.metadata.channels
         channels = []
+
         for c in range(nchans):
             it = _itools.islice(data, c, None, nchans)
             chan = _mtx.vec_new(0, it)

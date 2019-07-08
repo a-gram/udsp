@@ -39,19 +39,27 @@ class Builtin1D(Signal1D):
         if not self._sfreq:
             self._sfreq = 1
 
-        ds = 1 / self._sfreq
+        dx = 1 / self._sfreq
         N = round(self._length * self._sfreq)
-        X = _mtx.vec_new(N, lambda n: n * ds)
+        X = _mtx.vec_new(N, lambda n: n * dx)
         Y = self._generate(X)
 
         self._X = X
         self._Y = Y
-        self._length = N * ds
+        self._length = N * dx
 
-        print(" L: {} units".format(self._length))
-        print(" X: {:d} samples".format(len(X)))
-        print("ds: {} units".format(ds))
-        print("Fs: {} samples/unit".format(self._sfreq))
+        print("\n"
+              "Sig: {:d} samples\n"
+              "Len: {} {}\n"
+              "dx: {} {}\n"
+              "Fs: {} samples/{}\n"
+              "Dom: {:d} samples\n"
+              "\n".format(
+                   len(Y),
+                   self._length, self.xunits,
+                   dx, self.xunits,
+                   self._sfreq, self.xunits,
+                   len(X)))
 
         return self
 
@@ -107,23 +115,32 @@ class Builtin2D(Signal2D):
         if not self._sfreq:
             self._sfreq = 1
 
-        ds = 1 / self._sfreq
+        dx1 = 1 / self._sfreq
+        dx2 = dx1
         dim1 = round(self._length[0] * self._sfreq)
         dim2 = round(self._length[1] * self._sfreq)
 
-        X = _mtx.mat_new(dim1, dim2, lambda n, m: (n * ds, m * ds))
+        X = _mtx.mat_new(dim1, dim2, lambda n, m: (n * dx1, m * dx2))
         Y = self._generate(X)
 
         assert _mtx.mat_dims_equal(X, Y, full_check=True)
 
-        print(" L: {}x{} units".format(self._length[0], self._length[1]))
-        print(" X: {:d}x{:d} samples".format(dim1, dim2))
-        print("ds: {} units".format(ds))
-        print("Fs: {} samples/unit".format(self._sfreq))
+        print("\n"
+              "Sig: {:d}x{:d} samples\n"
+              "Len: {}x{} {}\n"
+              "dx:  {}x{} {}\n"
+              "Fs: {} samples/{}\n"
+              "Dom: {:d}x{:d} samples\n"
+              "\n".format(
+                   dim1, dim2,
+                   self._length[0], self._length[1], self.xunits,
+                   dx1, dx2, self.xunits,
+                   self._sfreq, self.xunits,
+                   dim1, dim2))
 
         self._X = X
         self._Y = Y
-        self._length = (dim1 * ds, dim2 * ds)
+        self._length = (dim1 * dx1, dim2 * dx2)
         return self
 
     def _generate(self, x):

@@ -33,9 +33,12 @@ class WAVCodec(MediaCodec):
     def decode(self):
 
         nframes = self._reader.getnframes()
-        nbits = self._reader.getsampwidth() * 8
-        atype = self._FMT_ACODE[nbits]
-        frames = array(atype)
+        Bps = self._reader.getsampwidth()
+        nchans = self._reader.getnchannels()
+        bps = Bps * 8  # bits per sample
+        Bpf = Bps * nchans  # bytes per frame
+        atype = self._FMT_ACODE[bps]
+        samples = array(atype)
 
         def unpack24(b):
             ib = bytearray(4)
@@ -44,13 +47,13 @@ class WAVCodec(MediaCodec):
                 yield unpack_from("i", ib, 0)[0]
 
         while nframes > 0:
-            rframes = self._reader.readframes(BLOCKSIZE)
-            if nbits == 24:
-                frames.extend(array(atype, unpack24(rframes)))
+            fbytes = self._reader.readframes(BLOCKSIZE)
+            if bps == 24:
+                samples.extend(array(atype, unpack24(fbytes)))
             else:
-                frames.frombytes(rframes)
-            nframes -= len(rframes)
-        return frames
+                samples.frombytes(fbytes)
+            nframes -= (len(fbytes) / Bpf)
+        return samples
 
     def encode(self):
         # TODO: Not implemented

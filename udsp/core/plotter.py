@@ -291,17 +291,16 @@ if _HAS_MATPLOTLIB:
             it will be automatically determined.
         stride: tuple, optional
             The step between points (determines the "density" of the mesh)
+        colormap: str
+            A colormap name used to render maps
 
         """
-        def __init__(self,
-                     signals,
-                     zrange=None,
-                     stride=(1, 1),
-                     **kwargs):
+        def __init__(self, signals, **kwargs):
 
             super().__init__(signals, **kwargs)
-            self.zrange = zrange
-            self.stride = stride
+            self.zrange = None
+            self.stride = (1, 1)
+            self.colormap = "gray"
 
         def graph(self):
 
@@ -430,7 +429,7 @@ if _HAS_MATPLOTLIB:
                         raise RuntimeError
 
                     _plt.imshow(self._signals[i][j].get(),
-                                cmap='gray',
+                                cmap=self.colormap,
                                 alpha=malpha)
                     _plt.xlabel(xlabel)
                     _plt.ylabel(ylabel)
