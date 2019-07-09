@@ -20,10 +20,8 @@ class Signal(object):
     Attributes
     ----------
     _length: float, tuple
-        (read-only)
         The length of the signal in each dimension in physical units.
     _sfreq: float
-        (read-only)
         The sampling frequency (equal for all dimensions)
     _Y: list[]
         An n-dimensional array holding the signal's output
@@ -37,10 +35,21 @@ class Signal(object):
         The physical units for the input in each dimension.
         It is a str for 1D signals, a tuple of str otherwise
     _domain: str
-        (read-only)
         The domain the signal is currently in
     name: str
         A name assigned to the signal
+
+    Properties
+    ----------
+    length: float, tuple
+        (read-only)
+        The length of the signal
+    sfreq: float
+        (read-only)
+        The sampling frequency
+    domain: str
+        (read-only)
+        The domain of the signal
     nsamples: int
         (read-only)
         The total number of samples in the signal
@@ -102,6 +111,9 @@ class Signal(object):
         """
         raise NotImplementedError
 
+    def __radd__(self, other):
+        raise NotImplementedError
+
     def __sub__(self, other):
         """
         Subtract another signal or scalar from this signal
@@ -117,6 +129,9 @@ class Signal(object):
         """
         raise NotImplementedError
 
+    def __rsub__(self, other):
+        raise NotImplementedError
+
     def __mul__(self, other):
         """
         Multiply this signal by another signal or scalar
@@ -130,6 +145,9 @@ class Signal(object):
         Signal
 
         """
+        raise NotImplementedError
+
+    def __rmul__(self, other):
         raise NotImplementedError
 
     def __truediv__(self, other):
@@ -174,7 +192,7 @@ class Signal(object):
         """
         raise NotImplementedError
 
-    # TODO comparison (equality, "closeness")
+    # TODO: comparison (equality, "closeness") ?
 
     # ---------------------------------------------------------
     #                      Properties
@@ -689,7 +707,7 @@ class Signal(object):
 
         This code is used often in operations between signals to check
         whether the operand is a signal or scalar and make the calls to
-        the appropriate math functions.
+        the appropriate math functions or raise an error.
 
         Parameters
         ----------
@@ -707,5 +725,8 @@ class Signal(object):
                 raise ValueError(
                     "The signals must have equal dimensions"
                 )
-            return operand._Y
-        return operand
+            return operand.get()
+        elif _utl.isscalar(operand):
+            return operand
+        else:
+            return NotImplemented

@@ -8,6 +8,7 @@ import math as _math
 
 from .base import Signal as Signal
 from ..core import mtx as _mtx
+from ..core import utils as _utl
 from ..core import plotter as _plt
 from .transforms import Transforms
 from .spectrums import Spectrum, Spectrum1D, Spectrum2D
@@ -40,23 +41,47 @@ class Signal1D(Signal):
     def __add__(self, other):
 
         other = self._get_op_value(other)
+        if other is NotImplemented:
+            return other
         asignal = self.clone()
         asignal._Y = _mtx.vec_add(self._Y, other)
         return asignal
 
+    def __radd__(self, other):
+
+        if not _utl.isscalar(other):
+            return NotImplemented
+        return self.__add__(other)
+
     def __sub__(self, other):
 
         other = self._get_op_value(other)
+        if other is NotImplemented:
+            return other
         asignal = self.clone()
         asignal._Y = _mtx.vec_sub(self._Y, other)
         return asignal
 
+    def __rsub__(self, other):
+
+        if not _utl.isscalar(other):
+            return NotImplemented
+        return self.__sub__(other)
+
     def __mul__(self, other):
 
         other = self._get_op_value(other)
+        if other is NotImplemented:
+            return other
         asignal = self.clone()
         asignal._Y = _mtx.vec_mul(self._Y, other)
         return asignal
+
+    def __rmul__(self, other):
+
+        if not _utl.isscalar(other):
+            return NotImplemented
+        return self.__mul__(other)
 
     def __truediv__(self, other):
 
@@ -327,23 +352,47 @@ class Signal2D(Signal):
     def __add__(self, other):
 
         other = self._get_op_value(other)
+        if other is NotImplemented:
+            return other
         asignal = self.clone()
         asignal._Y = _mtx.mat_add(self._Y, other)
         return asignal
 
+    def __radd__(self, other):
+
+        if not _utl.isscalar(other):
+            return NotImplemented
+        return self.__add__(other)
+
     def __sub__(self, other):
 
         other = self._get_op_value(other)
+        if other is NotImplemented:
+            return other
         asignal = self.clone()
         asignal._Y = _mtx.mat_sub(self._Y, other)
         return asignal
 
+    def __rsub__(self, other):
+
+        if not _utl.isscalar(other):
+            return NotImplemented
+        return self.__sub__(other)
+
     def __mul__(self, other):
 
         other = self._get_op_value(other)
+        if other is NotImplemented:
+            return other
         asignal = self.clone()
         asignal._Y = _mtx.mat_mul(self._Y, other)
         return asignal
+
+    def __rmul__(self, other):
+
+        if not _utl.isscalar(other):
+            return NotImplemented
+        return self.__mul__(other)
 
     def __truediv__(self, other):
 

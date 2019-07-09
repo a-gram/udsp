@@ -9,7 +9,7 @@ from ..signal.transforms import Transforms as _Transforms
 
 class ConvFilter(System):
     """
-    Abstract base class for LTSI  systems
+    Abstract base class for LTSI systems
 
     Attributes
     ----------
@@ -32,10 +32,14 @@ class ConvFilter(System):
         BORDER_REPEAT
     }
 
-    def __init__(self, h, **kwargs):
+    def __init__(self,
+                 h,
+                 extmode=BORDER_IGNORE,
+                 **kwargs):
+
         super().__init__()
         self._h = h
-        self.extmode = self.BORDER_IGNORE
+        self.extmode = extmode
 
     def _sysop(self):
         """

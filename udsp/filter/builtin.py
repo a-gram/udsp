@@ -1,5 +1,5 @@
 """
-Built-in linear filters
+Built-in convolution filters
 
 """
 
@@ -25,8 +25,11 @@ class BoxFilter1D(ConvFilter1D):
         The size of the filter. Must be odd > 1.
 
     """
-    def __init__(self, n=5):
-        super().__init__([1 / n] * n)
+    def __init__(self,
+                 n=5,
+                 **kwargs):
+
+        super().__init__([1 / n] * n, **kwargs)
 
 
 class TriangularFilter1D(ConvFilter1D):
@@ -37,13 +40,17 @@ class TriangularFilter1D(ConvFilter1D):
     ----------
     n: int
         The size of the filter. Must be odd > 1.
-    b: float
-       Bias (offset)
     k: float
        Scale (slope)
+    b: float
+       Bias (offset)
 
     """
-    def __init__(self, n=5, k=1, b=0):
+    def __init__(self,
+                 n=5,
+                 k=1,
+                 b=0,
+                 **kwargs):
 
         def fun(x):
             return b + (n - abs(x - a)) * k
@@ -57,7 +64,7 @@ class TriangularFilter1D(ConvFilter1D):
         #     h.append(hi)
         #     hsum += hi
         # h = map(lambda x: x / hsum, h)
-        super().__init__(h)
+        super().__init__(h, **kwargs)
 
 
 class GaussianFilter1D(ConvFilter1D):
@@ -72,9 +79,16 @@ class GaussianFilter1D(ConvFilter1D):
        Standard deviation
     k: float
        Scale factor
+    b: float
+       Bias (offset)
 
     """
-    def __init__(self, n=5, s=0.6, k=1, b=0):
+    def __init__(self,
+                 n=5,
+                 s=0.6,
+                 k=1,
+                 b=0,
+                 **kwargs):
 
         def fun(x):
             return b + _math.exp(-(x - a)**2 / (2 * s**2)) * k
@@ -89,7 +103,7 @@ class GaussianFilter1D(ConvFilter1D):
         #     h.append(hi)
         #     hsum += hi
         # h = map(lambda x: x / hsum, h)
-        super().__init__(h)
+        super().__init__(h, **kwargs)
 
 
 class DiffFilter1D(ConvFilter1D):
@@ -108,8 +122,11 @@ class DiffFilter1D(ConvFilter1D):
         "bdiff": [0, 1, -1]
     }
 
-    def __init__(self, method="cdiff"):
-        super().__init__(self._KERNELS[method])
+    def __init__(self,
+                 method="cdiff",
+                 **kwargs):
+
+        super().__init__(self._KERNELS[method], **kwargs)
 
 
 class LaplacianFilter1D(ConvFilter1D):
@@ -117,8 +134,67 @@ class LaplacianFilter1D(ConvFilter1D):
     Second order differential filter
 
     """
-    def __init__(self):
-        super().__init__([1, -2, 1])
+    def __init__(self,
+                 **kwargs):
+
+        super().__init__([1, -2, 1], **kwargs)
+
+
+class LoGFilter1D(ConvFilter1D):
+    """
+    Laplacian of Gaussian filter
+
+    Parameters
+    ----------
+    n: int
+        The size of the filter. Must be odd > 1.
+    s: float
+       Standard deviation
+    k: float
+       Scale factor
+    b: float
+       Bias (offset)
+
+    """
+
+    def __init__(self,
+                 n=5,
+                 s=0.6,
+                 k=1,
+                 b=0,
+                 **kwargs):
+
+        def fun(x):
+            ks1 = 2 * s ** 2
+            ks2 = 2 * _math.pi * s ** 6
+            fac1 = ((x - a) ** 2 - ks1) / ks2
+            fac2 = _math.exp(-((x - a) ** 2) / ks1)
+            return b + (fac1 * fac2) * k
+
+        def sign(num):
+            return 1 if num >= 0 else -1
+
+        a = n // 2
+        h = _mtx.vec_new(n, fun)
+
+        # Rescale the LoG so that the sum of elements is zero
+        A, B = _mtx.vec_bin(h, 2, lambda e: (e < 0, abs(e)))
+        ka = A / (A + B)
+        kb = 1 - ka
+        Ca = ka * abs(A - B)
+        Cb = kb * abs(A - B)
+        maxN, minN = max(A, B), min(A, B)
+        maxC, minC = max(Ca, Cb), min(Ca, Cb)
+        sign_maxN = 1 if maxN == A else -1
+
+        for i, hi in enumerate(h):
+            if sign(hi) == sign_maxN:
+                ki = (1 - 1 / maxN * maxC)
+            else:
+                ki = (1 + 1 / minN * minC)
+            h[i] = hi * ki
+
+        super().__init__(h, **kwargs)
 
 
 # ---------------------------------------------------------
@@ -136,9 +212,12 @@ class BoxFilter2D(ConvFilter2D):
         The size of the filer. Must be odd > 1.
 
     """
-    def __init__(self, n=5):
+    def __init__(self,
+                 n=5,
+                 **kwargs):
+
         h = _mtx.mat_new(n, n, 1 / n)
-        super().__init__(h)
+        super().__init__(h, **kwargs)
 
 
 class TriangularFilter2D(ConvFilter2D):
@@ -149,15 +228,19 @@ class TriangularFilter2D(ConvFilter2D):
     ----------
     n: int
         The size of the filter. Must be odd > 1.
-    b: float
-        Bias (offset)
     k: float
         Scale (slope)
+    b: float
+       Bias (offset)
     support: str
         Kernel support ("square", "circle")
 
     """
-    def __init__(self, n=5, k=1, b=0, support="square"):
+    def __init__(self, n=5,
+                       k=1,
+                       b=0,
+                       support="square",
+                       **kwargs):
 
         def pyramid(x, y):
             return b + (n - abs((x - a) + (y - a)) -
@@ -177,7 +260,7 @@ class TriangularFilter2D(ConvFilter2D):
         a = n // 2
         h = _mtx.mat_new(n, n, fun)
         h = _mtx.mat_div(h, _mtx.mat_sum(h))
-        super().__init__(h)
+        super().__init__(h, **kwargs)
 
 
 class GaussianFilter2D(ConvFilter2D):
@@ -192,9 +275,16 @@ class GaussianFilter2D(ConvFilter2D):
        Standard deviation
     k: float
        Scale factor
+    b: float
+       Bias (offset)
 
     """
-    def __init__(self, n=5, s=0.6, k=1, b=0):
+    def __init__(self,
+                 n=5,
+                 s=0.6,
+                 k=1,
+                 b=0,
+                 **kwargs):
 
         def fun(x, y):
             return b + _math.exp(-((x - a)**2 + (y - a)**2)
@@ -202,7 +292,7 @@ class GaussianFilter2D(ConvFilter2D):
         a = n // 2
         h = _mtx.mat_new(n, n, fun)
         h = _mtx.mat_div(h, _mtx.mat_sum(h))
-        super().__init__(h)
+        super().__init__(h, **kwargs)
 
 
 class DiffFilter2D(ConvFilter2D):
@@ -248,9 +338,11 @@ class DiffFilter2D(ConvFilter2D):
         }
     }
 
-    def __init__(self, method="gradient"):
+    def __init__(self,
+                 method="gradient",
+                 **kwargs):
 
-        super().__init__(_Signal2D())
+        super().__init__(_Signal2D(), **kwargs)
         self.method = method
 
     def _sysop(self):
@@ -284,16 +376,35 @@ class LaplacianFilter2D(ConvFilter2D):
                      [-1, -1, -1]]
     }
 
-    def __init__(self, method="laplace8"):
-        super().__init__(self._KERNELS[method])
+    def __init__(self,
+                 method="laplace8",
+                 **kwargs):
+
+        super().__init__(self._KERNELS[method], **kwargs)
 
 
 class LoGFilter2D(ConvFilter2D):
     """
     Laplacian of Gaussian filter
 
+    Parameters
+    ----------
+    n: int
+        The size of the filter. Must be odd > 1.
+    s: float
+       Standard deviation
+    k: float
+       Scale factor
+    b: float
+       Bias (offset)
+
     """
-    def __init__(self, n=5, s=0.6, k=1, b=0):
+    def __init__(self,
+                 n=5,
+                 s=0.6,
+                 k=1,
+                 b=0,
+                 **kwargs):
 
         def fun(x, y):
             ks1 = 2 * s**2
@@ -320,9 +431,10 @@ class LoGFilter2D(ConvFilter2D):
 
         for i, row in enumerate(h):
             for j, hij in enumerate(row):
-                if sign(h[i][j]) == sign_maxN:
-                    h[i][j] = hij * (1 - 1 / maxN * maxC)
+                if sign(hij) == sign_maxN:
+                    kij = (1 - 1 / maxN * maxC)
                 else:
-                    h[i][j] = hij * (1 + 1 / minN * minC)
+                    kij = (1 + 1 / minN * minC)
+                h[i][j] = hij * kij
 
-        super().__init__(h)
+        super().__init__(h, **kwargs)

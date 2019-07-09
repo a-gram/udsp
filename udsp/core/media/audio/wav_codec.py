@@ -40,11 +40,16 @@ class WAVCodec(MediaCodec):
         atype = self._FMT_ACODE[bps]
         samples = array(atype)
 
+        # def unpack24(b):
+        #     ib = bytearray(4)
+        #     for i in range(0, len(b), 3):
+        #         ib[1:4] = b[i:i + 3]
+        #         yield unpack_from("i", ib, 0)[0]
+
         def unpack24(b):
-            ib = bytearray(4)
             for i in range(0, len(b), 3):
-                ib[1:4] = b[i:i + 3]
-                yield unpack_from("i", ib, 0)[0]
+                yield int.from_bytes(b[i:i + 3],
+                                     "little", signed=True)
 
         while nframes > 0:
             fbytes = self._reader.readframes(BLOCKSIZE)

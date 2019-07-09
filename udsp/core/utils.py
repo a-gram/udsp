@@ -292,3 +292,20 @@ def isiterable(obj):
         return False
     return True
 
+
+def isscalar(val):
+    """
+    Check whether a given value is a scalar
+
+    Parameters
+    ----------
+    val
+
+    Returns
+    -------
+    bool
+
+    """
+    return (isinstance(val, int) or
+            isinstance(val, float) or
+            isinstance(val, complex))
