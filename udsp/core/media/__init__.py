@@ -21,6 +21,7 @@ for specific image formats:
 
 import itertools as _itools
 
+from array import array
 from .base import MediaObject, MediaCodec, Metadata
 from .codecs import CodecRegistry
 from . import const as _cst
@@ -48,9 +49,9 @@ class Image(MediaObject):
         data = self._codec.decode()
         return self._to_mat(data)
 
-    def save(self):
-        # TODO: Not implemented
-        pass
+    def save(self, data, meta):
+        self._meta = meta
+        self._codec.encode(self._from_mat(data), meta)
 
     @classmethod
     def _use_codecs(cls, reg):
@@ -58,7 +59,17 @@ class Image(MediaObject):
 
     def _to_mat(self, data):
         """
-        Convert the media data into matrices
+        Deinterleaves the image data into matrices
+
+        Parameters
+        ----------
+        data: array
+            A flat array with the image samples
+
+        Returns
+        -------
+        list[]
+            A list of matrices representing the image channels
 
         """
         nchans = self.metadata.channels
@@ -70,6 +81,29 @@ class Image(MediaObject):
                 row = _mtx.vec_new(0, it)
                 channels[c].append(row)
         return channels
+
+    def _from_mat(self, data):
+        """
+        Interleaves the image data into flat raw arrays
+
+        Parameters
+        ----------
+        data: list[]
+            A list of matrices representing the image channels
+
+        Returns
+        -------
+        array
+            A flat array with the image samples
+
+        """
+        samples = []
+        for line in zip(*data):
+            sline = array("B")
+            for pixel in zip(*line):
+                sline.extend(pixel)
+            samples.append(sline)
+        return samples
 
 
 class Audio(MediaObject):
@@ -88,9 +122,9 @@ class Audio(MediaObject):
         data = self._codec.decode()
         return self._to_mat(data)
 
-    def save(self):
-        # TODO: Not implemented
-        pass
+    def save(self, data, meta):
+        self._meta = meta
+        self._codec.encode(self._from_mat(data), meta)
 
     @classmethod
     def _use_codecs(cls, reg):
@@ -98,7 +132,17 @@ class Audio(MediaObject):
 
     def _to_mat(self, data):
         """
-        Convert the media data into matrices
+        Deinterleaves the audio data into vectors
+
+        Parameters
+        ----------
+        data: array
+            A flat array with the audio samples
+
+        Returns
+        -------
+        list[]
+            A list of vectors representing the audio channels
 
         """
         nchans = self.metadata.channels
@@ -109,6 +153,32 @@ class Audio(MediaObject):
             chan = _mtx.vec_new(0, it)
             channels.append(chan)
         return channels
+
+    def _from_mat(self, data):
+        """
+        Interleaves the audio data into flat raw arrays
+
+        Parameters
+        ----------
+        data: list[]
+            A list of vectors representing the audio channels
+
+        Returns
+        -------
+        array
+            A flat array with the audio samples
+
+        """
+        # Sample format to array type mapping
+        _FMT_ACODE = {8: "B", 16: "h",  24: "i", 32: "i"}
+
+        bps = self.metadata.bps
+        atype = _FMT_ACODE[bps]
+        samples = array(atype)
+
+        for frame in zip(*data):
+            samples.extend(frame)
+        return samples
 
 
 # ---------------------------------------------------------

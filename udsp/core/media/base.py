@@ -28,11 +28,25 @@ class Metadata(object):
     have more.
 
     """
-    def __init__(self):
-        self.size = None
-        self.bps = None
-        self.channels = None
-        self.resolution = None
+    def __init__(self, size=None,
+                       bps=None,
+                       channels=None,
+                       resolution=None):
+        self.size = size
+        self.bps = bps
+        self.channels = channels
+        self.resolution = resolution
+
+    def __str__(self):
+        return ("\nsize:       {}\n"
+                "bps:        {}\n"
+                "channels:   {}\n"
+                "resolution: {}\n"
+                .format(
+                 self.size,
+                 self.bps,
+                 self.channels,
+                 self.resolution))
 
 
 class MediaCodec(object):
@@ -44,14 +58,17 @@ class MediaCodec(object):
     format = None
     description = None
 
-    def __init__(self, stream):
+    def __init__(self, rstream, wstream):
         """
         Create a media codec from a given stream
 
         Parameters
         ----------
-        stream
-            Any stream implementing an open/read/write/close interface,
+        rstream
+            Any stream implementing an open/read/close interface,
+            or a stream identifier (e.g. string, int)
+        wstream
+            Any stream implementing an open/write/close interface,
             or a stream identifier (e.g. string, int)
 
         """
@@ -63,15 +80,20 @@ class MediaCodec(object):
 
         Returns
         -------
-        array, bytearray
-            An array/buffer with the raw media data samples
+        array
+            An array with the raw data samples
 
         """
         raise NotImplementedError
 
-    def encode(self):
+    def encode(self, data, meta):
         """
-        Encode and save the media
+        Encode and save the media data
+
+        Parameters
+        ----------
+        data: array
+            An array with the raw data samples
 
         Returns
         -------
@@ -87,6 +109,20 @@ class MediaCodec(object):
         Returns
         -------
         Metadata
+
+        """
+        raise NotImplementedError
+
+    def set_metadata(self, meta):
+        """
+        Set the media metadata
+
+        Parameters
+        ----------
+        meta: Metadata
+
+        Returns
+        -------
 
         """
         raise NotImplementedError
@@ -167,7 +203,7 @@ class MediaObject(object):
 
     def load(self):
         """
-        Load and return the media data channels
+        Load and return the media data
 
         Returns
         -------
@@ -179,9 +215,16 @@ class MediaObject(object):
         """
         raise NotImplementedError
 
-    def save(self):
+    def save(self, data, meta):
         """
         Save the media data
+
+        Parameters
+        ----------
+        data: list[]
+            A list of vectors/matrices representing the media channels
+        meta: Metadata
+            The media metadata
 
         Returns
         -------
@@ -206,23 +249,31 @@ class MediaObject(object):
         MediaObject
 
         """
-        if cls is MediaObject:
-            raise TypeError(
-                "This method can't be called from the base class"
-            )
-        if not cls._codecs:
-            raise ValueError("The codecs registry is not set")
-
-        ext = os.path.splitext(filename)[1].replace(".", "")
-
-        try:
-            formatt = cls._codecs[ext]
-        except KeyError:
-            raise RuntimeError("Unsupported {} format: {}"
-                               .format(cls._mediatype, ext))
-
+        formatt = cls._get_codec(cls, filename)
         media = cls()
-        media._codec = formatt["codec"](filename)
+        media._codec = formatt["codec"](rstream=filename)
+        return media
+
+    @classmethod
+    def to_file(cls, filename):
+        """
+        Create media objects to files
+
+        Parameters
+        ----------
+        cls: class
+            A media class
+        filename: str
+            The full path to the media file
+
+        Returns
+        -------
+        MediaObject
+
+        """
+        formatt = cls._get_codec(cls, filename)
+        media = cls()
+        media._codec = formatt["codec"](wstream=filename)
         return media
 
     @classmethod
@@ -284,3 +335,33 @@ class MediaObject(object):
 
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _get_codec(cls, filename):
+        """
+        Look up the codec for a given media file
+
+        Parameters
+        ----------
+        cls
+        filename
+
+        Returns
+        -------
+
+        """
+        if cls is MediaObject:
+            raise TypeError(
+                "This method can't be called from the base class"
+            )
+        if not cls._codecs:
+            raise ValueError("The codecs registry is not set")
+
+        ext = os.path.splitext(filename)[1].replace(".", "")
+
+        try:
+            codec = cls._codecs[ext]
+        except KeyError:
+            raise RuntimeError("Unsupported {} format: {}"
+                               .format(cls._mediatype, ext))
+        return codec

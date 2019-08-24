@@ -102,6 +102,12 @@ class Signal1D(Signal):
         asignal._Y = _mtx.vec_pow(self._Y, power)
         return asignal
 
+    def __round__(self, n=None):
+
+        asignal = self.clone()
+        asignal._Y = _mtx.vec_round(self._Y, "nearest")
+        return asignal
+
     @property
     def dim(self):
         return len(self._Y),
@@ -411,6 +417,12 @@ class Signal2D(Signal):
 
         asignal = self.clone()
         asignal._Y = _mtx.mat_pow(self._Y, power)
+        return asignal
+
+    def __round__(self, n=None):
+
+        asignal = self.clone()
+        asignal._Y = _mtx.mat_round(self._Y, "nearest")
         return asignal
 
     @property

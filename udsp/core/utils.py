@@ -3,9 +3,9 @@ Miscellaneous utility functions used throughout the library.
 
 """
 
-# import math
 import operator as _op
 import functools as _func
+import math as _m
 import cmath as _cm
 
 
@@ -72,7 +72,7 @@ def product(a):
 
 def floor_pow2(n):
     """
-    Returns the nearest power of 2 <= n
+    Find the nearest power of 2 that's <= n
 
     """
     k = 0
@@ -271,6 +271,87 @@ def get_min_max_f(array):
     except TypeError:
         is_cplx = type(array[0]) is complex
     return (cmin, cmax) if is_cplx else (rmin, rmax)
+
+
+def cround(val):
+    """
+    Rounds a complex number
+
+    Parameters
+    ----------
+    val: complex
+
+    Returns
+    -------
+    complex
+
+    """
+    return complex(round(val.real), round(val.imag))
+
+
+def cfloor(val):
+    """
+    Floors a complex number
+
+    Parameters
+    ----------
+    val: complex
+
+    Returns
+    -------
+    complex
+
+    """
+    return complex(_m.floor(val.real), _m.floor(val.imag))
+
+
+def cceil(val):
+    """
+    Ceils a complex number
+
+    Parameters
+    ----------
+    val: complex
+
+    Returns
+    -------
+    complex
+
+    """
+    return complex(_m.ceil(val.real), _m.ceil(val.imag))
+
+
+def get_round_f(array, mode):
+    """
+    Gets the rounding functions based on array type
+
+    This is a refactored convenience function that returns the
+    rounding functions based on the type of elements in the
+    given array.
+
+    Parameters
+    ----------
+    array: list[], list[list]
+    mode: str
+
+    Returns
+    -------
+    function
+
+    """
+    try:
+        is_cplx = type(array[0][0]) is complex
+    except TypeError:
+        is_cplx = type(array[0]) is complex
+
+    if mode is "nearest":
+        return cround if is_cplx else round
+    elif mode is "up":
+        return cceil if is_cplx else _m.ceil
+    elif mode is "down":
+        return cfloor if is_cplx else _m.floor
+    else:
+        raise RuntimeError("Bug")
 
 
 def isiterable(obj):

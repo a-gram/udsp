@@ -20,31 +20,66 @@ from ..base import MediaCodec, Metadata
 class PNGCodec(MediaCodec):
 
     format = "png"
-    description = "Portable Network Graphics coder/encoder"
+    description = "Portable Network Graphics decoder/encoder"
 
-    def __init__(self, stream):
-        super().__init__(stream)
-        self._reader = PNGReader(stream)
-        self._writer = None
+    def __init__(self, rstream=None, wstream=None):
+
+        super().__init__(rstream, wstream)
+        self._reader = PNGReader(rstream) if rstream else None
+        self._writer = PNGWriter(wstream) if wstream else None
 
     def decode(self):
+
+        self._check_stream("read")
         data = self._reader.read()
         return data[2]
 
-    def encode(self):
-        # TODO: Not implemented
-        pass
+    def encode(self, data, meta):
+
+        self._check_stream("write")
+        self.set_metadata(meta)
+        self._writer.write(data)
 
     def get_metadata(self):
+
+        self._check_stream("read")
+
         if not hasattr(self._reader, "width"):
             self._reader.preamble()
+
         meta = Metadata()
         meta.size = (self._reader.width, self._reader.height)
         meta.bps = self._reader.bitdepth
         meta.channels = self._reader.planes
         return meta
 
+    def set_metadata(self, meta):
+        print(meta)
+        self._check_stream("write")
+        self._writer.set_meta(
+            size=meta.size,
+            bitdepth=meta.bps,
+            planes=meta.channels,
+            greyscale=meta.channels in (1, 2),
+            alpha=meta.channels in (2, 4)
+        )
 
+    def _check_stream(self, mode):
+
+        if mode == "read":
+            if not self._reader:
+                raise RuntimeError("Codec not set in read mode")
+        elif mode == "write":
+            if not self._writer:
+                raise RuntimeError("Codec not set in write mode")
+        else:
+            raise RuntimeError("Bug")
+
+
+# =====
+# PyPNG
+# =====
+#
 # PNG encoder/decoder in pure Python
 #
 # Copyright (C) 2006 Johann C. Rocholl <johann@browsershots.org>
@@ -1410,6 +1445,555 @@ def convert_rgb_to_rgba(row, result):
     """
     for i in range(3):
         result[i::4] = row[i::3]
+
+
+# ---------------------------------------------------------
+
+class PNGWriter:
+    """
+    PNG encoder in pure Python.
+    """
+
+    def __init__(self, filename):
+
+        self.width = None
+        self.height = None
+        self.transparent = None
+        self.background = None
+        self.gamma = None
+        self.greyscale = None
+        self.alpha = None
+        self.colormap = None
+        self.bitdepth = None
+        self.compression = None
+        self.chunk_limit = None
+        self.interlace = None
+        self.palette = None
+        self.x_pixels_per_unit = None
+        self.y_pixels_per_unit = None
+        self.unit_is_meter = None
+        self.color_type = None
+        self.color_planes = None
+        self.planes = None
+        self.psize = None
+        self.rescale = None
+        self.file = open(filename, "wb")
+
+    def set_meta(self,
+                 width=None, height=None,
+                 size=None,
+                 greyscale=Default,
+                 alpha=False,
+                 bitdepth=8,
+                 palette=None,
+                 transparent=None,
+                 background=None,
+                 gamma=None,
+                 compression=None,
+                 interlace=False,
+                 planes=None,
+                 colormap=None,
+                 maxval=None,
+                 chunk_limit=2**20,
+                 x_pixels_per_unit=None,
+                 y_pixels_per_unit=None,
+                 unit_is_meter=False):
+        """
+        Create a PNG encoder object.
+        Arguments:
+        width, height
+          Image size in pixels, as two separate arguments.
+        size
+          Image size (w,h) in pixels, as single argument.
+        greyscale
+          Pixels are greyscale, not RGB.
+        alpha
+          Input data has alpha channel (RGBA or LA).
+        bitdepth
+          Bit depth: from 1 to 16 (for each channel).
+        palette
+          Create a palette for a colour mapped image (colour type 3).
+        transparent
+          Specify a transparent colour (create a ``tRNS`` chunk).
+        background
+          Specify a default background colour (create a ``bKGD`` chunk).
+        gamma
+          Specify a gamma value (create a ``gAMA`` chunk).
+        compression
+          zlib compression level: 0 (none) to 9 (more compressed);
+          default: -1 or None.
+        interlace
+          Create an interlaced image.
+        chunk_limit
+          Write multiple ``IDAT`` chunks to save memory.
+        x_pixels_per_unit
+          Number of pixels a unit along the x axis (write a
+          `pHYs` chunk).
+        y_pixels_per_unit
+          Number of pixels a unit along the y axis (write a
+          `pHYs` chunk). Along with `x_pixel_unit`, this gives
+          the pixel size ratio.
+        unit_is_meter
+          `True` to indicate that the unit (for the `pHYs`
+          chunk) is metre.
+        The image size (in pixels) can be specified either by using the
+        `width` and `height` arguments, or with the single `size`
+        argument.
+        If `size` is used it should be a pair (*width*, *height*).
+        The `greyscale` argument indicates whether input pixels
+        are greyscale (when true), or colour (when false).
+        The default is true unless `palette=` is used.
+        The `alpha` argument (a boolean) specifies
+        whether input pixels have an alpha channel (or not).
+        `bitdepth` specifies the bit depth of the source pixel values.
+        Each channel may have a different bit depth.
+        Each source pixel must have values that are
+        an integer between 0 and ``2**bitdepth-1``, where
+        `bitdepth` is the bit depth for the corresponding channel.
+        For example, 8-bit images have values between 0 and 255.
+        PNG only stores images with bit depths of
+        1,2,4,8, or 16 (the same for all channels).
+        When `bitdepth` is not one of these values or where
+        channels have different bit depths,
+        the next highest valid bit depth is selected,
+        and an ``sBIT`` (significant bits) chunk is generated
+        that specifies the original precision of the source image.
+        In this case the supplied pixel values will be rescaled to
+        fit the range of the selected bit depth.
+        The PNG file format supports many bit depth / colour model
+        combinations, but not all.
+        The details are somewhat arcane
+        (refer to the PNG specification for full details).
+        Briefly:
+        Bit depths < 8 (1,2,4) are only allowed with greyscale and
+        colour mapped images;
+        colour mapped images cannot have bit depth 16.
+        For colour mapped images
+        (in other words, when the `palette` argument is specified)
+        the `bitdepth` argument must match one of
+        the valid PNG bit depths: 1, 2, 4, or 8.
+        (It is valid to have a PNG image with a palette and
+        an ``sBIT`` chunk, but the meaning is slightly different;
+        it would be awkward to use the `bitdepth` argument for this.)
+        The `palette` option, when specified,
+        causes a colour mapped image to be created:
+        the PNG colour type is set to 3;
+        `greyscale` must not be true; `alpha` must not be true;
+        `transparent` must not be set.
+        The bit depth must be 1,2,4, or 8.
+        When a colour mapped image is created,
+        the pixel values are palette indexes and
+        the `bitdepth` argument specifies the size of these indexes
+        (not the size of the colour values in the palette).
+        The palette argument value should be a sequence of 3- or
+        4-tuples.
+        3-tuples specify RGB palette entries;
+        4-tuples specify RGBA palette entries.
+        All the 4-tuples (if present) must come before all the 3-tuples.
+        A ``PLTE`` chunk is created;
+        if there are 4-tuples then a ``tRNS`` chunk is created as well.
+        The ``PLTE`` chunk will contain all the RGB triples in the same
+        sequence;
+        the ``tRNS`` chunk will contain the alpha channel for
+        all the 4-tuples, in the same sequence.
+        Palette entries are always 8-bit.
+        If specified, the `transparent` and `background` parameters must be
+        a tuple with one element for each channel in the image.
+        Either a 3-tuple of integer (RGB) values for a colour image, or
+        a 1-tuple of a single integer for a greyscale image.
+        If specified, the `gamma` parameter must be a positive number
+        (generally, a `float`).
+        A ``gAMA`` chunk will be created.
+        Note that this will not change the values of the pixels as
+        they appear in the PNG file,
+        they are assumed to have already
+        been converted appropriately for the gamma specified.
+        The `compression` argument specifies the compression level to
+        be used by the ``zlib`` module.
+        Values from 1 to 9 (highest) specify compression.
+        0 means no compression.
+        -1 and ``None`` both mean that the ``zlib`` module uses
+        the default level of compession (which is generally acceptable).
+        If `interlace` is true then an interlaced image is created
+        (using PNG's so far only interace method, *Adam7*).
+        This does not affect how the pixels should be passed in,
+        rather it changes how they are arranged into the PNG file.
+        On slow connexions interlaced images can be
+        partially decoded by the browser to give
+        a rough view of the image that is
+        successively refined as more image data appears.
+        .. note ::
+          Enabling the `interlace` option requires the entire image
+          to be processed in working memory.
+        `chunk_limit` is used to limit the amount of memory used whilst
+        compressing the image.
+        In order to avoid using large amounts of memory,
+        multiple ``IDAT`` chunks may be created.
+        """
+
+        # At the moment the `planes` argument is ignored;
+        # its purpose is to act as a dummy so that
+        # ``Writer(x, y, **info)`` works, where `info` is a dictionary
+        # returned by Reader.read and friends.
+        # Ditto for `colormap`.
+
+        width, height = check_sizes(size, width, height)
+        del size
+
+        if not is_natural(width) or not is_natural(height):
+            raise ProtocolError("width and height must be integers")
+        if width <= 0 or height <= 0:
+            raise ProtocolError("width and height must be greater than zero")
+        # http://www.w3.org/TR/PNG/#7Integers-and-byte-order
+        if width > 2 ** 31 - 1 or height > 2 ** 31 - 1:
+            raise ProtocolError("width and height cannot exceed 2**31-1")
+
+        if alpha and transparent is not None:
+            raise ProtocolError(
+                "transparent colour not allowed with alpha channel")
+
+        # bitdepth is either single integer, or tuple of integers.
+        # Convert to tuple.
+        try:
+            len(bitdepth)
+        except TypeError:
+            bitdepth = (bitdepth, )
+        for b in bitdepth:
+            valid = is_natural(b) and 1 <= b <= 16
+            if not valid:
+                raise ProtocolError(
+                    "each bitdepth %r must be a positive integer <= 16" %
+                    (bitdepth,))
+
+        # Calculate channels, and
+        # expand bitdepth to be one element per channel.
+        palette = check_palette(palette)
+        alpha = bool(alpha)
+        colormap = bool(palette)
+        if greyscale is Default and palette:
+            greyscale = False
+        greyscale = bool(greyscale)
+        if colormap:
+            color_planes = 1
+            planes = 1
+        else:
+            color_planes = (3, 1)[greyscale]
+            planes = color_planes + alpha
+        if len(bitdepth) == 1:
+            bitdepth *= planes
+
+        bitdepth, self.rescale = check_bitdepth_rescale(
+                palette,
+                bitdepth,
+                transparent, alpha, greyscale)
+
+        # These are assertions, because above logic should have
+        # corrected or raised all problematic cases.
+        if bitdepth < 8:
+            assert greyscale or palette
+            assert not alpha
+        if bitdepth > 8:
+            assert not palette
+
+        transparent = check_color(transparent, greyscale, 'transparent')
+        background = check_color(background, greyscale, 'background')
+
+        # It's important that the true boolean values
+        # (greyscale, alpha, colormap, interlace) are converted
+        # to bool because Iverson's convention is relied upon later on.
+        self.width = width
+        self.height = height
+        self.transparent = transparent
+        self.background = background
+        self.gamma = gamma
+        self.greyscale = greyscale
+        self.alpha = alpha
+        self.colormap = colormap
+        self.bitdepth = int(bitdepth)
+        self.compression = compression
+        self.chunk_limit = chunk_limit
+        self.interlace = bool(interlace)
+        self.palette = palette
+        self.x_pixels_per_unit = x_pixels_per_unit
+        self.y_pixels_per_unit = y_pixels_per_unit
+        self.unit_is_meter = bool(unit_is_meter)
+
+        self.color_type = (4 * self.alpha +
+                           2 * (not greyscale) +
+                           1 * self.colormap)
+        assert self.color_type in (0, 2, 3, 4, 6)
+
+        self.color_planes = color_planes
+        self.planes = planes
+        # :todo: fix for bitdepth < 8
+        self.psize = (self.bitdepth / 8) * self.planes
+
+    def write(self, rows):
+        """
+        Write a PNG image to the output file.
+        `rows` should be an iterable that yields each row
+        (each row is a sequence of values).
+        The rows should be the rows of the original image,
+        so there should be ``self.height`` rows of
+        ``self.width * self.planes`` values.
+        If `interlace` is specified (when creating the instance),
+        then an interlaced PNG file will be written.
+        Supply the rows in the normal image order;
+        the interlacing is carried out internally.
+        .. note ::
+          Interlacing requires the entire image to be in working memory.
+        """
+
+        # Values per row
+        vpr = self.width * self.planes
+
+        def check_rows(rows):
+            """
+            Yield each row in rows,
+            but check each row first (for correct width).
+            """
+            for i, row in enumerate(rows):
+                try:
+                    wrong_length = len(row) != vpr
+                except TypeError:
+                    # When using an itertools.ichain object or
+                    # other generator not supporting __len__,
+                    # we set this to False to skip the check.
+                    wrong_length = False
+                if wrong_length:
+                    # Note: row numbers start at 0.
+                    raise ProtocolError(
+                        "Expected %d values but got %d value, in row %d" %
+                        (vpr, len(row), i))
+                yield row
+
+        if self.interlace:
+            fmt = 'BH'[self.bitdepth > 8]
+            a = array(fmt, itertools.chain(*check_rows(rows)))
+            return self.write_array(a)
+
+        nrows = self.write_passes(check_rows(rows))
+        if nrows != self.height:
+            raise ProtocolError(
+                "rows supplied (%d) does not match height (%d)" %
+                (nrows, self.height))
+
+    def write_passes(self, rows):
+        """
+        Write a PNG image to the output file.
+        Most users are expected to find the :meth:`write` or
+        :meth:`write_array` method more convenient.
+        The rows should be given to this method in the order that
+        they appear in the output file.
+        For straightlaced images, this is the usual top to bottom ordering.
+        For interlaced images the rows should have been interlaced before
+        passing them to this function.
+        `rows` should be an iterable that yields each row
+        (each row being a sequence of values).
+        """
+
+        # Ensure rows are scaled (to 4-/8-/16-bit),
+        # and packed into bytes.
+
+        if self.rescale:
+            rows = rescale_rows(rows, self.rescale)
+
+        if self.bitdepth < 8:
+            rows = pack_rows(rows, self.bitdepth)
+        elif self.bitdepth == 16:
+            rows = unpack_rows(rows)
+
+        return self.write_packed(rows)
+
+    def write_packed(self, rows):
+        """
+        Write PNG file to `outfile`.
+        `rows` should be an iterator that yields each packed row;
+        a packed row being a sequence of packed bytes.
+        The rows have a filter byte prefixed and
+        are then compressed into one or more IDAT chunks.
+        They are not processed any further,
+        so if bitdepth is other than 1, 2, 4, 8, 16,
+        the pixel values should have been scaled
+        before passing them to this method.
+        This method does work for interlaced images but it is best avoided.
+        For interlaced images, the rows should be
+        presented in the order that they appear in the file.
+        """
+        outfile = self.file
+
+        self.write_preamble()
+
+        # http://www.w3.org/TR/PNG/#11IDAT
+        if self.compression is not None:
+            compressor = zlib.compressobj(self.compression)
+        else:
+            compressor = zlib.compressobj()
+
+        # data accumulates bytes to be compressed for the IDAT chunk;
+        # it's compressed when sufficiently large.
+        data = bytearray()
+
+        for i, row in enumerate(rows):
+            # Add "None" filter type.
+            # Currently, it's essential that this filter type be used
+            # for every scanline as
+            # we do not mark the first row of a reduced pass image;
+            # that means we could accidentally compute
+            # the wrong filtered scanline if we used
+            # "up", "average", or "paeth" on such a line.
+            data.append(0)
+            data.extend(row)
+            if len(data) > self.chunk_limit:
+                compressed = compressor.compress(data)
+                if len(compressed):
+                    write_chunk(outfile, b'IDAT', compressed)
+                data = bytearray()
+
+        compressed = compressor.compress(bytes(data))
+        flushed = compressor.flush()
+        if len(compressed) or len(flushed):
+            write_chunk(outfile, b'IDAT', compressed + flushed)
+        # http://www.w3.org/TR/PNG/#11IEND
+        write_chunk(outfile, b'IEND')
+        return i + 1
+
+    def write_preamble(self):
+
+        outfile = self.file
+
+        # http://www.w3.org/TR/PNG/#5PNG-file-signature
+        outfile.write(signature)
+
+        # http://www.w3.org/TR/PNG/#11IHDR
+        write_chunk(outfile, b'IHDR',
+                    struct.pack("!2I5B", self.width, self.height,
+                                self.bitdepth, self.color_type,
+                                0, 0, self.interlace))
+
+        # See :chunk:order
+        # http://www.w3.org/TR/PNG/#11gAMA
+        if self.gamma is not None:
+            write_chunk(outfile, b'gAMA',
+                        struct.pack("!L", int(round(self.gamma * 1e5))))
+
+        # See :chunk:order
+        # http://www.w3.org/TR/PNG/#11sBIT
+        if self.rescale:
+            write_chunk(
+                outfile, b'sBIT',
+                struct.pack('%dB' % self.planes,
+                            * [s[0] for s in self.rescale]))
+
+        # :chunk:order: Without a palette (PLTE chunk),
+        # ordering is relatively relaxed.
+        # With one, gAMA chunk must precede PLTE chunk
+        # which must precede tRNS and bKGD.
+        # See http://www.w3.org/TR/PNG/#5ChunkOrdering
+        if self.palette:
+            p, t = make_palette_chunks(self.palette)
+            write_chunk(outfile, b'PLTE', p)
+            if t:
+                # tRNS chunk is optional;
+                # Only needed if palette entries have alpha.
+                write_chunk(outfile, b'tRNS', t)
+
+        # http://www.w3.org/TR/PNG/#11tRNS
+        if self.transparent is not None:
+            if self.greyscale:
+                fmt = "!1H"
+            else:
+                fmt = "!3H"
+            write_chunk(outfile, b'tRNS',
+                        struct.pack(fmt, *self.transparent))
+
+        # http://www.w3.org/TR/PNG/#11bKGD
+        if self.background is not None:
+            if self.greyscale:
+                fmt = "!1H"
+            else:
+                fmt = "!3H"
+            write_chunk(outfile, b'bKGD',
+                        struct.pack(fmt, *self.background))
+
+        # http://www.w3.org/TR/PNG/#11pHYs
+        if (self.x_pixels_per_unit is not None and
+                self.y_pixels_per_unit is not None):
+            tup = (self.x_pixels_per_unit,
+                   self.y_pixels_per_unit,
+                   int(self.unit_is_meter))
+            write_chunk(outfile, b'pHYs', struct.pack("!LLB", *tup))
+
+    def write_array(self, pixels):
+        """
+        Write an array that holds all the image values
+        as a PNG file on the output file.
+        See also :meth:`write` method.
+        """
+
+        if self.interlace:
+            if type(pixels) != array:
+                # Coerce to array type
+                fmt = 'BH'[self.bitdepth > 8]
+                pixels = array(fmt, pixels)
+            self.write_passes(self.array_scanlines_interlace(pixels))
+        else:
+            self.write_passes(self.array_scanlines(pixels))
+
+    def array_scanlines(self, pixels):
+        """
+        Generates rows (each a sequence of values) from
+        a single array of values.
+        """
+
+        # Values per row
+        vpr = self.width * self.planes
+        stop = 0
+        for y in range(self.height):
+            start = stop
+            stop = start + vpr
+            yield pixels[start:stop]
+
+    def array_scanlines_interlace(self, pixels):
+        """
+        Generator for interlaced scanlines from an array.
+        `pixels` is the full source image as a single array of values.
+        The generator yields each scanline of the reduced passes in turn,
+        each scanline being a sequence of values.
+        """
+
+        # http://www.w3.org/TR/PNG/#8InterlaceMethods
+        # Array type.
+        fmt = 'BH'[self.bitdepth > 8]
+        # Value per row
+        vpr = self.width * self.planes
+
+        # Each iteration generates a scanline starting at (x, y)
+        # and consisting of every xstep pixels.
+        for lines in adam7_generate(self.width, self.height):
+            for x, y, xstep in lines:
+                # Pixels per row (of reduced image)
+                ppr = int(math.ceil((self.width - x) / float(xstep)))
+                # Values per row (of reduced image)
+                reduced_row_len = ppr * self.planes
+                if xstep == 1:
+                    # Easy case: line is a simple slice.
+                    offset = y * vpr
+                    yield pixels[offset: offset + vpr]
+                    continue
+                # We have to step by xstep,
+                # which we can do one plane at a time
+                # using the step in Python slices.
+                row = array(fmt)
+                # There's no easier way to set the length of an array
+                row.extend(pixels[0:reduced_row_len])
+                offset = y * vpr + x * self.planes
+                end_offset = (y + 1) * vpr
+                skip = self.planes * xstep
+                for i in range(self.planes):
+                    row[i::self.planes] = \
+                        pixels[offset + i: end_offset: skip]
+                yield row
 
 
 # ---------------------------------------------------------

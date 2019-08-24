@@ -6,7 +6,7 @@ Built-in convolution filters
 import math as _math
 
 from .ndim import ConvFilter1D, ConvFilter2D
-from ..signal.ndim import Signal2D as _Signal2D
+from ..signal.ndim import Signal2D
 from ..core import mtx as _mtx
 
 
@@ -309,11 +309,11 @@ class DiffFilter2D(ConvFilter2D):
     """
     _KERNELS = {
         "gradient": {
-            "hx": [[0, 0, 0],
-                   [0,-1, 1],
-                   [0, 0, 0]], "hy": [[0, 0, 0],
-                                      [0,-1, 0],
-                                      [0, 1, 0]],
+            "hx": [[ 0, 0, 0],
+                   [-1, 0, 1],
+                   [ 0, 0, 0]], "hy": [[0,-1, 0],
+                                       [0, 0, 0],
+                                       [0, 1, 0]],
         },
         "roberts": {
             "hx": [[0, 0, 0],
@@ -342,16 +342,16 @@ class DiffFilter2D(ConvFilter2D):
                  method="gradient",
                  **kwargs):
 
-        super().__init__(_Signal2D(), **kwargs)
+        super().__init__(Signal2D(), **kwargs)
         self.method = method
 
     def _sysop(self):
 
         hx = self._KERNELS[self.method]["hx"]
         hy = self._KERNELS[self.method]["hy"]
-        self._h = _Signal2D(y=hx)
+        self._h = Signal2D(y=hx)
         dx = super()._sysop()[0]
-        self._h = _Signal2D(y=hy)
+        self._h = Signal2D(y=hy)
         dy = super()._sysop()[0]
         return [dx, dy]
 

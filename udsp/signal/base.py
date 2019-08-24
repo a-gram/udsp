@@ -14,8 +14,9 @@ class Signal(object):
     """
     Abstract base class for signals of any kind.
 
-    This class defines the interface that any signal must implement
-    in order to provide the required DSP functionality.
+    This class defines the DSP functionality that any signal should
+    implement. It provides a "high-level access" to common DSP
+    operations.
 
     Attributes
     ----------
@@ -188,6 +189,20 @@ class Signal(object):
         -------
         Signal
 
+
+        """
+        raise NotImplementedError
+
+    def __round__(self, n=None):
+        """
+        Round the signal's values
+
+        Parameters
+        ----------
+        n
+
+        Returns
+        -------
 
         """
         raise NotImplementedError
@@ -690,8 +705,8 @@ class Signal(object):
         Parameters
         ----------
         signal: Signal
-            A partially cloned signal to which all objects data must
-            be copied.
+            A partially cloned signal to which all data structures
+            must be copied.
 
         Returns
         -------

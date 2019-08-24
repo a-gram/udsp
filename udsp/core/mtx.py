@@ -1046,6 +1046,27 @@ def mat_bin(m, nbins, f, init=0):
     return acc
 
 
+def mat_round(m, mode):
+    """
+    Round the elements of a matrix using different methods
+
+    Parameters
+    ----------
+    m: list[list]
+        A matrix of scalar values
+    mode: {"nearest", "up", "down"}
+        The rounding mode, where "nearest" is the standard method,
+        "up" is the ceiling method and "down" is the flooring method.
+
+    Returns
+    -------
+    list[list]
+        A matrix with the rounded elements
+
+    """
+    return [*map(vec_round, m, [mode] * len(m))]
+
+
 def mat_toeplitz(h, g):
     """
     Constructs a Toeplitz matrix from the given sequences
@@ -1797,6 +1818,34 @@ def vec_bin(v, nbins, f, init=0):
         if i is not None:
             acc[i] += val
     return acc
+
+
+def vec_round(v, mode):
+    """
+    Round the elements of a vector using different methods
+
+    Parameters
+    ----------
+    v: list[]
+        A vector of scalar values
+    mode: {"nearest", "up", "down"}
+        The rounding mode, where "nearest" is the standard method,
+        "up" is the ceiling method and "down" is the flooring method.
+
+    Returns
+    -------
+    list[]
+        A vector with the rounded elements
+
+    """
+    if vec_is_void(v):
+        return v
+    if mode not in {"nearest", "up", "down"}:
+        raise ValueError("Invalid rounding mode: %s" % mode)
+
+    fround = _utl.get_round_f(v, mode)
+
+    return [*map(fround, v)]
 
 
 # ---------------------------------------------------------
