@@ -24,7 +24,7 @@ import itertools as _itools
 from array import array
 from .base import MediaObject, MediaCodec, Metadata
 from .codecs import CodecRegistry
-from . import const as _cst
+from . import const as _K
 from .. import mtx as _mtx
 
 
@@ -97,9 +97,12 @@ class Image(MediaObject):
             A flat array with the image samples
 
         """
+        bps = self.metadata.bps
+        atype = _K.BITRES_ACODE[bps]
         samples = []
+
         for line in zip(*data):
-            sline = array("B")
+            sline = array(atype)
             for pixel in zip(*line):
                 sline.extend(pixel)
             samples.append(sline)
@@ -169,11 +172,8 @@ class Audio(MediaObject):
             A flat array with the audio samples
 
         """
-        # Sample format to array type mapping
-        _FMT_ACODE = {8: "B", 16: "h",  24: "i", 32: "i"}
-
         bps = self.metadata.bps
-        atype = _FMT_ACODE[bps]
+        atype = _K.BITRES_ACODE[bps]
         samples = array(atype)
 
         for frame in zip(*data):
@@ -187,8 +187,8 @@ class Audio(MediaObject):
 
 
 # Create the media registries and load the codecs
-_img_codecs = CodecRegistry(_cst.CODEC_DIRNAME_IMAGE)
-_aud_codecs = CodecRegistry(_cst.CODEC_DIRNAME_AUDIO)
+_img_codecs = CodecRegistry(_K.CODEC_DIRNAME_IMAGE)
+_aud_codecs = CodecRegistry(_K.CODEC_DIRNAME_AUDIO)
 _img_codecs.load()
 _aud_codecs.load()
 

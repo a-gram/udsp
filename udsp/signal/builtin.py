@@ -8,6 +8,7 @@ import math as _math
 from .bbase import Builtin1D, Builtin2D
 from ..core import mtx as _mtx
 from ..core import stat as _stat
+from ..core import utils as _utl
 from ..core import media as _media
 
 
@@ -318,8 +319,8 @@ class AudioChannel(Builtin1D):
     ----------
     id: int
         (read-only) The channel number
-    sampres: int
-        (read-only) The sample resolution
+    bps: int
+        (read-only) The bits per sample
 
 
     """
@@ -335,21 +336,49 @@ class AudioChannel(Builtin1D):
     def from_file(cls, path):
 
         audio = _media.Audio.from_file(path)
-        cls._audio = audio.load()
-        channels = []
-        for c, _ in enumerate(cls._audio):
-            channel = cls(
-                length=(audio.metadata.size /
-                        audio.metadata.resolution),
-                sfreq=audio.metadata.resolution,
-                xunits="s"
-            )
-            channel._id = c
-            channel._bps = audio.metadata.bps
-            channel.make()
-            channels.append(channel)
-        cls._audio = None
+        try:
+            cls._audio = audio.load()
+            channels = []
+            for c, _ in enumerate(cls._audio):
+                channel = cls(
+                    length=(audio.metadata.size /
+                            audio.metadata.resolution),
+                    sfreq=audio.metadata.resolution,
+                    xunits="s"
+                )
+                channel._id = c
+                channel._bps = audio.metadata.bps
+                channel.make()
+                channels.append(channel)
+            cls._audio = None
+        finally:
+            del audio
         return channels
+
+    @staticmethod
+    def to_file(filename, channels):
+
+        # Check that all channels have the same parameters
+        size = len(channels[0])
+        bps = channels[0].bps
+        sfreq = channels[0].sfreq
+        nchans = len(channels)
+
+        if (not _utl.all_same(size, [len(c) for c in channels]) or
+             not _utl.all_same(bps,  [c.bps for c in channels]) or
+             not _utl.all_same(sfreq, [c.sfreq for c in channels])):
+            raise ValueError("Audio channels with conflicting parameters")
+
+        data = [c.get() for c in channels]
+        audio = _media.Audio.to_file(filename)
+        try:
+            audio.save(data,
+                       _media.Metadata(size=size,
+                                       bps=bps,
+                                       channels=nchans,
+                                       resolution=sfreq))
+        finally:
+            del audio
 
     def _generate(self, x):
         return self._audio[self._id]
@@ -359,7 +388,7 @@ class AudioChannel(Builtin1D):
         return self._id
 
     @property
-    def sampres(self):
+    def bps(self):
         return self._bps
 
 

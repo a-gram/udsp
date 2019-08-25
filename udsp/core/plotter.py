@@ -71,7 +71,7 @@ if _HAS_MATPLOTLIB:
                 too using the set() method. If it's a list of signals
                 then they will be plotted in plot-in-plot mode (multiplot).
                 If it's a 2D array of signals then they will be plotted
-                according to the layout specified in the grid.
+                according to the layout specified by the grid.
             kwargs:
                 Optional arguments
 

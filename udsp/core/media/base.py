@@ -19,7 +19,7 @@ class Metadata(object):
     channels: int
         The number of channels
     resolution: int, tuple
-        The media resolution
+        The data resolution
 
     Notes
     -----

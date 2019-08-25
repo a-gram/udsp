@@ -6,8 +6,9 @@ WAV codec implementation
 import wave
 
 from array import array
-from struct import unpack_from, pack
+# from struct import unpack_from, pack
 from ..base import MediaCodec, Metadata
+from .. import const as _K
 
 BLOCKSIZE = 8192
 
@@ -16,14 +17,6 @@ class WAVCodec(MediaCodec):
 
     format = "wav"
     description = "WAV audio decoder/encoder"
-
-    # Sample format to array type mapping
-    _FMT_ACODE = {
-        8:  "B",
-        16: "h",
-        24: "i",
-        32: "i"
-    }
 
     def __init__(self, rstream=None, wstream=None):
 
@@ -47,7 +40,7 @@ class WAVCodec(MediaCodec):
         nchans = self._reader.getnchannels()
         bps = Bps * 8  # bits per sample
         Bpf = Bps * nchans  # bytes per frame
-        atype = self._FMT_ACODE[bps]
+        atype = _K.BITRES_ACODE[bps]
         samples = array(atype)
 
         # def unpack24(b):
@@ -76,20 +69,23 @@ class WAVCodec(MediaCodec):
         self.set_metadata(meta)
 
         nframes = meta.size
+        bps = meta.bps
         bsamples = BLOCKSIZE * meta.channels
         rsamples = 0
 
+        def pack24(b):
+            for i in range(0, len(b), 4):
+                for n in b[i:i + 3]:
+                    yield n
+
         while nframes > 0:
             bdata = data[rsamples: rsamples + bsamples]
-            self._writer.writeframes(bdata.tobytes())
+            bbdata = bdata.tobytes()
+            if bps == 24:
+                bbdata = bytearray(pack24(bbdata))
+            self._writer.writeframes(bbdata)
             nframes -= (len(bdata) / meta.channels)
             rsamples += len(bdata)
-
-        # bdata = data[rsamples: rsamples + bsamples]
-        # while len(bdata):
-        #     self._writer.writeframes(bdata.tobytes())
-        #     rsamples += len(bdata)
-        #     bdata = data[rsamples: rsamples + bsamples]
 
     def get_metadata(self):
 
