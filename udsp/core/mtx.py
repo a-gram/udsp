@@ -591,10 +591,10 @@ def mat_submat(a, r):
     a: list[list]
         A matrix of scalar values
     r: tuple
-        A tuple with two pairs (cs, ce), (rs, re) indicating the start
+        A 4-tuple of integers (cs, ce, rs, re) indicating the start
         and end points of the sub-matrix along the columns and
         rows respectively. If cs>ce (or rs>re) then the sub-matrix will be
-        reversed along the dimensions. All values must be positive.
+        reversed along the dimensions. All values must be non-negative.
 
     Returns
     -------
@@ -604,16 +604,14 @@ def mat_submat(a, r):
     """
     if mat_is_void(a):
         return []
-    if (not r or len(r) != 2 or len(r[0]) != 2 or len(r[1]) != 2
-              or min(r[0]) < 0 or min(r[1]) < 0):
+    if not r or len(r) != 4 or min(r) < 0:
         raise ValueError("Invalid sub matrix dimensions. Must be a "
-                         "tuple with 2 pairs ((cs, ce), (rs, re)).")
+                         "4-tuple of ints >= 0.")
 
     nmin, nmax = 0, len(a) - 1
     mmin, mmax = 0, len(a[0]) - 1
 
-    no, n1 = r[0][0], r[0][1]
-    mo, m1 = r[1][0], r[1][1]
+    no, n1, mo, m1 = r
 
     # For out of bound ranges, return an empty array
     if (no > nmax and n1 > nmax or no < nmin and n1 < nmin or
@@ -861,7 +859,7 @@ def mat_extend(m, ext, val=0, mode=None, **kwargs):
         return []
     if not ext or len(ext) < 4 or min(ext) < 0:
         raise ValueError(
-            "Invalid extension size. Must be a 4-tuple of int >= 0"
+            "Invalid extension size. Must be a 4-tuple of ints >= 0"
         )
 
     m_rows, m_cols = mat_dim(m)
@@ -1671,7 +1669,7 @@ def vec_extend(v, ext, val=0, mode=None, **kwargs):
         return []
     if not ext or len(ext) < 2 or min(ext) < 0:
         raise ValueError(
-            "Invalid extension size. Must be a 2-tuple of int >= 0"
+            "Invalid extension size. Must be a 2-tuple of ints >= 0"
         )
 
     left, right = ext

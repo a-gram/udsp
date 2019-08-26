@@ -18,8 +18,8 @@ ipath = "examples/data/"
 opath = "examples/data/"
 
 # Create a 3-second sine wave at 5Hz and some Gaussian noise
-s = Sinewave1D(f=5, length=3, sfreq=80)
-n = Noise1D(pdf="normal", length=3, sfreq=80)
+swave = Sinewave1D(f=5, length=3, sfreq=80)
+gnoise = Noise1D(pdf="normal", length=3, sfreq=80)
 
 # Create 3 notes
 la = Sinewave1D(f=440, length=1, sfreq=8000)
@@ -33,48 +33,63 @@ cust = Signal1D(
 )
 
 # Create a 2D Gaussian centered at (5, 5) with std of (2, 2)
-gauss = Gaussian2D(u=(5, 5),
-                   s=(2, 2),
+gauss = Gaussian2D(u=(5, 5), s=(2, 2),
                    length=(10, 10), sfreq=5)
 
-# Create 1D signals from the audio channels in a file
+# Create 1D signals from the  channels in an audio file
 audio = AudioChannel.from_file(ipath + "music.wav")
 
 # Create a 1D signal from audio downmixed to mono
 audio1 = MonoAudio(ipath + "music.wav")
 
-# Create 2D signals from the color channels of an image
+# Create 1D signals from the color channels of an image
 image = ImageChannel.from_file(ipath + "image.png")
 
 # Create a 1D signal from color image downmixed to grey
 image1 = GrayImage(ipath + "image.png")
 
 
-# Signals arithmetic
+# Signal arithmetic
 # ==================
 
 # Addition
-sn = s + n
+nwave = swave + gnoise
 
 # Scaling (by multiplication)
-sn2 = s + 0.2 * n
-# sn2.plot.set([[s], [n], [sn2]]).graph()
+nwave2 = swave + 0.2 * gnoise
 
 # Scaling (by division)
-sn2 = s + n / 5
+nwave3 = swave + gnoise / 5
 
 # Subtraction
-s = sn2 - 0.2 * n
+swave = nwave2 - gnoise
 
-# Inversion
-si = -s
+# Negation
+iwave = -swave
 
 # Exponentiation
-se = s**2
+ewave = swave ** 2
+
 
 # Signal properties
+# =================
 
-# Length in samples
-print(len(s))
+# Size in samples
+print(len(swave))
 # or ...
-print(s.nsamples)
+print(swave.nsamples)
+
+# Dimensions in samples
+print(swave.dim)
+print(image1.dim)
+
+# Length in physical units
+print(audio1.length)
+
+# Sampling frequency
+print(audio1.sfreq)
+
+
+# Signal manipulations
+# ====================
+

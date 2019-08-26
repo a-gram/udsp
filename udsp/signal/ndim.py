@@ -492,7 +492,6 @@ class Signal2D(Signal):
         if self.is_empty():
             return Signal2D()
 
-        p = p[0] + p[1]
         stime = 1 / self._sfreq
 
         Yp = _mtx.mat_extend(self._Y, p, value)
@@ -504,24 +503,6 @@ class Signal2D(Signal):
         # TODO: update the length?
         return psignal
 
-    # TODO: maybe move the following function elsewhere
-    def pad_centre_to(self, signal):
-
-        dl1 = signal.dim[0] - self.dim[0]
-        dl2 = signal.dim[1] - self.dim[1]
-
-        if dl1 < 0 or dl2 < 0:
-            raise ValueError("Target signal cant't be shorter")
-
-        if dl1 % 2 or dl2 % 2:
-            # raise ValueError("The signal can't be centre-padded")
-            print("WARNING: signal can't be exactly centre-padded")
-
-        p = ((dl1 // 2 + dl1 % 2, dl1 // 2),
-             (dl2 // 2 + dl2 % 2, dl2 // 2))
-
-        return self.pad(p)
-
     def zero_pad_to(self, signal):
 
         dl1 = signal.dim[0] - self.dim[0]
@@ -530,11 +511,11 @@ class Signal2D(Signal):
         if dl1 < 0 or dl2 < 0:
             raise ValueError("Target signal cant't be shorter")
 
-        return self.pad(((0, dl1), (0, dl2)))
+        return self.pad((0, dl1, 0, dl2))
 
     def clip(self, crange):
 
-        if min(crange[0]) < 0 or min(crange[1]) < 0:
+        if min(crange) < 0:
             raise ValueError(
                 "Negative values in clipping ranges {}".format(crange)
             )
@@ -545,7 +526,8 @@ class Signal2D(Signal):
         csignal = self.clone()
         csignal._Y = Yc
         csignal._X = Xc
-        csignal._length = (len(Yc) / self._sfreq, len(Xc) / self._sfreq)
+        csignal._length = (len(Yc) / self._sfreq,
+                           len(Xc) / self._sfreq)
         return csignal
 
     def flip(self, dim=None):

@@ -884,11 +884,11 @@ class Signal2DTestCase(unittest.TestCase):
              [4, 5, 6],
              [7, 8, 9]]
         ]
-        pad = [((1, 2), (2, 1)),
-               ((2, 2), (2, 2)),
-               ((0, 1), (1, 0)),
-               ((1, 0), (0, 1)),
-               ((0, 0), (0, 0))]
+        pad = [(1, 2, 2, 1),
+               (2, 2, 2, 2),
+               (0, 1, 1, 0),
+               (1, 0, 0, 1),
+               (0, 0, 0, 0)]
         padder = [1, 2, 3, 4, 5]
         s = []
         for p in pad:
@@ -897,11 +897,11 @@ class Signal2DTestCase(unittest.TestCase):
             self.assertIsInstance(sig, Signal)
             self.assertListEqual(sig.get(), res)
         with self.assertRaises(ValueError):
-            signal.pad(((-2, 2), (1, 1)))
+            signal.pad((-2, 2, 1, 1))
         with self.assertRaises(ValueError):
-            signal.pad(((-2, 2), (1, -1)))
+            signal.pad((-2, 2, 1, -1))
         with self.assertRaises(ValueError):
-            signal.pad(((0, 2), (-1, 1)))
+            signal.pad((0, 2, -1, 1))
 
         res = [
             [[1, 1, 1, 1, 1, 1],
@@ -981,13 +981,20 @@ class Signal2DTestCase(unittest.TestCase):
                 [7, 8, 9]]
         res6 = []
         res7 = []
-        r1 = signal.clip(((1, 2), (1, 2)))
-        r2 = signal.clip(((0, 3), (1, 1)))
-        r3 = signal.clip(((1, 1), (1, 1)))
-        r4 = signal.clip(((2, 2), (0, 2)))
-        r5 = signal.clip(((0, 2), (0, 2)))
-        r6 = signal.clip(((4, 4), (3, 4)))
-        r7 = signal.clip(((0, 2), (3, 5)))
+        res8 = [[8, 9],
+                [5, 6]]
+        res9 = [[9, 8, 7],
+                [6, 5, 4],
+                [3, 2, 1]]
+        r1 = signal.clip((1, 2, 1, 2))
+        r2 = signal.clip((0, 3, 1, 1))
+        r3 = signal.clip((1, 1, 1, 1))
+        r4 = signal.clip((2, 2, 0, 2))
+        r5 = signal.clip((0, 2, 0, 2))
+        r6 = signal.clip((4, 4, 3, 4))
+        r7 = signal.clip((0, 2, 3, 5))
+        r8 = signal.clip((2, 1, 1, 2))
+        r9 = signal.clip((2, 0, 2, 0))
         self.assertIsInstance(r1, Signal)
         self.assertListEqual(r1.get(), res1)
         self.assertListEqual(r2.get(), res2)
@@ -996,14 +1003,16 @@ class Signal2DTestCase(unittest.TestCase):
         self.assertListEqual(r5.get(), res5)
         self.assertListEqual(r6.get(), res6)
         self.assertListEqual(r7.get(), res7)
+        self.assertListEqual(r8.get(), res8)
+        self.assertListEqual(r9.get(), res9)
         with self.assertRaises(ValueError):
-            signal.clip(((-2, 2), (1, 1)))
+            signal.clip((-2, 2, 1, 1))
         with self.assertRaises(ValueError):
-            signal.clip(((-2, 2), (1, -1)))
+            signal.clip((-2, 2, 1, -1))
         with self.assertRaises(ValueError):
-            signal.clip(((0, 2), (-1, 1)))
+            signal.clip((0, 2, -1, 1))
         signal = Signal2D()
-        r1 = signal.clip(((1, 2), (1, 2)))
+        r1 = signal.clip((1, 2, 1, 2))
         self.assertListEqual(r1.get(), [])
 
     def test_signal2d_flip(self):
