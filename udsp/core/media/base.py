@@ -29,23 +29,34 @@ class Metadata(object):
 
     """
     def __init__(self, size=None,
-                       bps=None,
                        channels=None,
+                       bps=None,
                        resolution=None):
         self.size = size
-        self.bps = bps
         self.channels = channels
+        self.bps = bps
         self.resolution = resolution
 
     def __str__(self):
         return ("\nsize:       {}\n"
-                "bps:        {}\n"
                 "channels:   {}\n"
+                "bps:        {}\n"
                 "resolution: {}\n"
                 .format(
                  self.size,
-                 self.bps,
                  self.channels,
+                 self.bps,
+                 self.resolution))
+
+    def __repr__(self):
+        return ("{{'size': {}, "
+                "'channels': {}, "
+                "'bps': {}, "
+                "'resolution': {}}}"
+                .format(
+                 self.size,
+                 self.channels,
+                 self.bps,
                  self.resolution))
 
 

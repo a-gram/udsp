@@ -93,8 +93,8 @@ class WAVCodec(MediaCodec):
 
         meta = Metadata()
         meta.size = self._reader.getnframes()
-        meta.bps = self._reader.getsampwidth() * 8
         meta.channels = self._reader.getnchannels()
+        meta.bps = self._reader.getsampwidth() * 8
         meta.resolution = self._reader.getframerate()
         return meta
 
@@ -103,8 +103,8 @@ class WAVCodec(MediaCodec):
         self._check_stream("write")
 
         self._writer.setnframes(meta.size)
-        self._writer.setsampwidth(int(meta.bps / 8))
         self._writer.setnchannels(meta.channels)
+        self._writer.setsampwidth(int(meta.bps / 8))
         self._writer.setframerate(meta.resolution)
 
     def _check_stream(self, mode):

@@ -251,6 +251,9 @@ class MonoAudio(Builtin1D):
     """
     Mono channel audio
 
+    This class represents a single audio channel. If the audio
+    has multiple channels they are mixed down to a mono.
+
     Attributes
     ----------
     _audio: Audio
@@ -260,15 +263,15 @@ class MonoAudio(Builtin1D):
 
     Properties
     ----------
-    sampres: int
+    bps: int
         (read-only) The sample resolution
 
     """
     def __init__(self,
-                 path,
+                 filename,
                  **kwargs):
 
-        audio = _media.Audio.from_file(path)
+        audio = _media.Audio.from_file(filename)
         super().__init__(
             length=(audio.metadata.size /
                     audio.metadata.resolution),
@@ -276,7 +279,7 @@ class MonoAudio(Builtin1D):
             xunits="s"
         )
         self._audio = audio
-        self._bps = self._audio.metadata.bps
+        self._bps = audio.metadata.bps
         self.make()
 
     def _generate(self, x):
@@ -298,13 +301,16 @@ class MonoAudio(Builtin1D):
         return channel
 
     @property
-    def sampres(self):
+    def bps(self):
         return self._bps
 
 
 class AudioChannel(Builtin1D):
     """
     Multi channel audio
+
+    This class represents a single audio channel in a multi-channel
+    audio stream.
 
     Attributes
     ----------
@@ -333,9 +339,21 @@ class AudioChannel(Builtin1D):
         self._bps = None
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, filename):
+        """
+        Load audio from file
 
-        audio = _media.Audio.from_file(path)
+        Parameters
+        ----------
+        filename: str
+
+        Returns
+        -------
+        list[AudioChannel]
+            A list with all the audio channels
+
+        """
+        audio = _media.Audio.from_file(filename)
         try:
             cls._audio = audio.load()
             channels = []
@@ -357,7 +375,18 @@ class AudioChannel(Builtin1D):
 
     @staticmethod
     def to_file(filename, channels):
+        """
+        Save audio to a file
 
+        Parameters
+        ----------
+        filename: str
+        channels: list[AudioChannel]
+
+        Returns
+        -------
+
+        """
         # Check that all channels have the same parameters
         size = len(channels[0])
         bps = channels[0].bps
@@ -374,11 +403,32 @@ class AudioChannel(Builtin1D):
         try:
             audio.save(data,
                        _media.Metadata(size=size,
-                                       bps=bps,
                                        channels=nchans,
+                                       bps=bps,
                                        resolution=sfreq))
         finally:
             del audio
+
+    @staticmethod
+    def info(filename):
+        """
+        Get audio info from a file
+
+        Parameters
+        ----------
+        filename: str
+
+        Returns
+        -------
+        Metadata
+
+        """
+        audio = _media.Audio.from_file(filename)
+        try:
+            meta = audio.metadata
+        finally:
+            del audio
+        return meta
 
     def _generate(self, x):
         return self._audio[self._id]
@@ -551,6 +601,9 @@ class GrayImage(Builtin2D):
     """
     Grayscale image
 
+    This class represents a greyscale image. If the image
+    has multiple channels they are mixed down to a grey one.
+
     Attributes
     ----------
     _image: Image
@@ -558,14 +611,14 @@ class GrayImage(Builtin2D):
 
     """
     def __init__(self,
-                 path,
+                 filename,
                  **kwargs):
 
-        image = _media.Image.from_file(path)
+        image = _media.Image.from_file(filename)
         super().__init__(
             length=(*reversed(image.metadata.size),)
         )
-        self._image = _media.Image.from_file(path)
+        self._image = image
         self.make()
 
     def _generate(self, x):
@@ -594,17 +647,23 @@ class ImageChannel(Builtin2D):
     """
     Multi channel image
 
+    This class represents a single color plane of an image
+
     Attributes
     ----------
     _image: Image
         The image source object
     _id: int
         The channel number
+    _bps: int
+        The sample resolution in bits per sample
 
     Properties
     ----------
     id: int
         (read-only) The channel number
+    bps: int
+        (read-only) The bits per sample
 
 
     """
@@ -613,22 +672,96 @@ class ImageChannel(Builtin2D):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._id = None
+        self._bps = None
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, filename):
+        """
+        Load an image from file
 
-        image = _media.Image.from_file(path)
-        cls._image = image.load()
-        channels = []
-        for c, _ in enumerate(cls._image):
-            channel = cls(
-                length=(*reversed(image.metadata.size),)
-            )
-            channel._id = c
-            channel.make()
-            channels.append(channel)
-        cls._audio = None
+        Parameters
+        ----------
+        filename: str
+
+        Returns
+        -------
+        list[ImageChannel]
+            A list with all the color channels of the image
+
+        """
+        image = _media.Image.from_file(filename)
+        try:
+            cls._image = image.load()
+            channels = []
+            for c, _ in enumerate(cls._image):
+                channel = cls(
+                    length=(*reversed(image.metadata.size),)
+                )
+                channel._id = c
+                channel._bps = image.metadata.bps
+                channel.make()
+                channels.append(channel)
+            cls._image = None
+        finally:
+            del image
         return channels
+
+    @staticmethod
+    def to_file(filename, channels):
+        """
+        Save an image to a file
+
+        Parameters
+        ----------
+        filename: str
+        channels: list[ImageChannel]
+
+        Returns
+        -------
+
+        """
+        # Check that all channels have the same parameters
+        size = channels[0].dim
+        bps = channels[0].bps
+        sfreq = channels[0].sfreq
+        nchans = len(channels)
+
+        if (not _utl.all_same(size, [c.dim for c in channels]) or
+             not _utl.all_same(bps,  [c.bps for c in channels]) or
+             not _utl.all_same(sfreq, [c.sfreq for c in channels])):
+            raise ValueError("Image channels with conflicting parameters")
+
+        data = [c.get() for c in channels]
+        image = _media.Image.to_file(filename)
+        try:
+            image.save(data,
+                       _media.Metadata(size=(*reversed(size),),
+                                       channels=nchans,
+                                       bps=bps,
+                                       resolution=sfreq))
+        finally:
+            del image
+
+    @staticmethod
+    def info(filename):
+        """
+        Get image info from a file
+
+        Parameters
+        ----------
+        filename: str
+
+        Returns
+        -------
+        Metadata
+
+        """
+        image = _media.Image.from_file(filename)
+        try:
+            meta = image.metadata
+        finally:
+            del image
+        return meta
 
     def _generate(self, x):
         return self._image[self._id]
@@ -637,3 +770,6 @@ class ImageChannel(Builtin2D):
     def id(self):
         return self._id
 
+    @property
+    def bps(self):
+        return self._bps

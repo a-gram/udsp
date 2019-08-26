@@ -49,17 +49,17 @@ class PNGCodec(MediaCodec):
 
         meta = Metadata()
         meta.size = (self._reader.width, self._reader.height)
-        meta.bps = self._reader.bitdepth
         meta.channels = self._reader.planes
+        meta.bps = self._reader.bitdepth
         return meta
 
     def set_metadata(self, meta):
-        print(meta)
+
         self._check_stream("write")
         self._writer.set_meta(
             size=meta.size,
-            bitdepth=meta.bps,
             planes=meta.channels,
+            bitdepth=meta.bps,
             greyscale=meta.channels in (1, 2),
             alpha=meta.channels in (2, 4)
         )
