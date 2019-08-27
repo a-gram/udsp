@@ -247,75 +247,14 @@ class Noise1D(Builtin1D, RNGMixin):
         return _mtx.vec_new(len(x), f)
 
 
-class MonoAudio(Builtin1D):
-    """
-    Mono channel audio
-
-    This class represents a single audio channel. If the audio
-    has multiple channels they are mixed down to a mono.
-
-    Attributes
-    ----------
-    _audio: Audio
-        The audio source object
-    _bps: int
-        The sample resolution in bits per sample
-
-    Properties
-    ----------
-    bps: int
-        (read-only) The sample resolution
-
-    """
-    def __init__(self,
-                 filename,
-                 **kwargs):
-
-        audio = _media.Audio.from_file(filename)
-        super().__init__(
-            length=(audio.metadata.size /
-                    audio.metadata.resolution),
-            sfreq=audio.metadata.resolution,
-            xunits="s"
-        )
-        self._audio = audio
-        self._bps = audio.metadata.bps
-        self.make()
-
-    def _generate(self, x):
-
-        channels = self._audio.load()
-        # Audio is mono
-        if len(channels) == 1:
-            channel = channels[0]
-        # Audio is stereo
-        elif len(channels) == 2:
-            # Convert to mono
-            channel = _mtx.vec_compose(
-                channels,
-                lambda l, r: round((l + r) / 2)
-            )
-        else:
-            raise RuntimeError("Bug")
-        self._audio = None  # we no longer need it
-        return channel
-
-    @property
-    def bps(self):
-        return self._bps
-
-
 class AudioChannel(Builtin1D):
     """
-    Multi channel audio
-
-    This class represents a single audio channel in a multi-channel
-    audio stream.
+    A single audio channel
 
     Attributes
     ----------
     _audio: Audio
-        The audio source object
+        The audio data
     _id: int
         The channel number
     _bps: int
@@ -339,23 +278,31 @@ class AudioChannel(Builtin1D):
         self._bps = None
 
     @classmethod
-    def from_file(cls, filename):
+    def from_file(cls, filename, mono=False):
         """
         Load audio from file
 
         Parameters
         ----------
         filename: str
+            The audio file
+        mono: bool
+            If True and the audio is multi-channel then
+            it will be downmixed and returned as mono
 
         Returns
         -------
         list[AudioChannel]
-            A list with all the audio channels
+            A list with the audio channels
 
         """
         audio = _media.Audio.from_file(filename)
         try:
-            cls._audio = audio.load()
+            if not mono:
+                cls._audio = audio.load()
+            else:
+                cls._audio = cls._to_mono(audio.load())
+
             channels = []
             for c, _ in enumerate(cls._audio):
                 channel = cls(
@@ -381,12 +328,15 @@ class AudioChannel(Builtin1D):
         Parameters
         ----------
         filename: str
-        channels: list[AudioChannel]
+        channels: list[AudioChannel], AudioChannel
 
         Returns
         -------
 
         """
+        if isinstance(channels, AudioChannel):
+            channels = [channels]
+
         # Check that all channels have the same parameters
         size = len(channels[0])
         bps = channels[0].bps
@@ -429,6 +379,33 @@ class AudioChannel(Builtin1D):
         finally:
             del audio
         return meta
+
+    @staticmethod
+    def _to_mono(channels):
+        """
+        Convert a multi-channel audio to mono
+
+        Parameters
+        ----------
+        channels: list[list]
+
+        Returns
+        -------
+        list[list]
+
+        """
+        # Audio is mono
+        if len(channels) == 1:
+            return channels
+        # Audio is stereo
+        elif len(channels) == 2:
+            # Convert to mono
+            return [_mtx.vec_compose(
+                channels,
+                lambda l, r: round((l + r) / 2)
+            )]
+        else:
+            raise RuntimeError("Bug")
 
     def _generate(self, x):
         return self._audio[self._id]
@@ -597,57 +574,9 @@ class Noise2D(Builtin2D, RNGMixin):
         return _mtx.mat_new(len(x), len(x[0]), f)
 
 
-class GrayImage(Builtin2D):
-    """
-    Grayscale image
-
-    This class represents a greyscale image. If the image
-    has multiple channels they are mixed down to a grey one.
-
-    Attributes
-    ----------
-    _image: Image
-        The image source object
-
-    """
-    def __init__(self,
-                 filename,
-                 **kwargs):
-
-        image = _media.Image.from_file(filename)
-        super().__init__(
-            length=(*reversed(image.metadata.size),)
-        )
-        self._image = image
-        self.make()
-
-    def _generate(self, x):
-
-        planes = self._image.load()
-        # Image is L or LA (grayscale)
-        if len(planes) in (1, 2):
-            yplane = planes[0]
-        # Image is RGB or RGBA (colour)
-        elif len(planes) in (3, 4):
-            cplanes = planes if len(planes) == 3 else planes[:3]
-            # Convert to grayscale
-            yplane = _mtx.mat_compose(
-                cplanes,
-                lambda r, g, b: round(0.2126 * r +
-                                      0.7152 * g +
-                                      0.0722 * b)
-            )
-        else:
-            raise RuntimeError("Bug")
-        self._image = None  # we no longer need it
-        return yplane
-
-
 class ImageChannel(Builtin2D):
     """
-    Multi channel image
-
-    This class represents a single color plane of an image
+    A single image channel
 
     Attributes
     ----------
@@ -675,23 +604,31 @@ class ImageChannel(Builtin2D):
         self._bps = None
 
     @classmethod
-    def from_file(cls, filename):
+    def from_file(cls, filename, mono=False):
         """
         Load an image from file
 
         Parameters
         ----------
         filename: str
+            The image file
+        mono: bool
+            If True and the image is multi-color then
+            it will be downmixed and returned as monocolor
 
         Returns
         -------
         list[ImageChannel]
-            A list with all the color channels of the image
+            A list with the color channels of the image
 
         """
         image = _media.Image.from_file(filename)
         try:
-            cls._image = image.load()
+            if not mono:
+                cls._image = image.load()
+            else:
+                cls._image = cls._to_mono(image.load())
+
             channels = []
             for c, _ in enumerate(cls._image):
                 channel = cls(
@@ -714,12 +651,15 @@ class ImageChannel(Builtin2D):
         Parameters
         ----------
         filename: str
-        channels: list[ImageChannel]
+        channels: list[ImageChannel], ImageChannel
 
         Returns
         -------
 
         """
+        if isinstance(channels, ImageChannel):
+            channels = [channels]
+
         # Check that all channels have the same parameters
         size = channels[0].dim
         bps = channels[0].bps
@@ -762,6 +702,37 @@ class ImageChannel(Builtin2D):
         finally:
             del image
         return meta
+
+    @staticmethod
+    def _to_mono(channels):
+        """
+        Convert a multi-color image to monocolor
+
+        Parameters
+        ----------
+        channels: list[list]
+
+        Returns
+        -------
+        list[list]
+
+        """
+        # Image is L or LA (grayscale)
+        if len(channels) in (1, 2):
+            return [channels[0]]
+        # Image is RGB or RGBA (colour)
+        elif len(channels) in (3, 4):
+            cplanes = (channels if len(channels) == 3
+                       else channels[:3])
+            # Convert to grayscale
+            return [_mtx.mat_compose(
+                cplanes,
+                lambda r, g, b: round(0.2126 * r +
+                                      0.7152 * g +
+                                      0.0722 * b)
+            )]
+        else:
+            raise RuntimeError("Bug")
 
     def _generate(self, x):
         return self._image[self._id]

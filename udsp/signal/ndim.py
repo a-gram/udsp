@@ -219,11 +219,11 @@ class Signal1D(Signal):
     def flip(self, dim=None):
 
         Yf = _mtx.vec_reverse(self._Y)
-        Xf = _mtx.vec_reverse(self._X)
+        # Xf = _mtx.vec_reverse(self._X)
 
         fsignal = self.clone()
         fsignal._Y = Yf
-        fsignal._X = Xf
+        # fsignal._X = Xf
         return fsignal
 
     def to_real(self):
@@ -546,19 +546,19 @@ class Signal2D(Signal):
         # Flip along both the columns and the rows
         if 1 in dim and 2 in dim:
             Yf = _mtx.mat_reverse(self._Y)
-            Xf = _mtx.mat_reverse(self._X)
+            # Xf = _mtx.mat_reverse(self._X)
         # Flip along the columns only
         elif 1 in dim:
             Yf = _mtx.mat_reverse(self._Y, rows=False)
-            Xf = _mtx.mat_reverse(self._X, rows=False)
+            # Xf = _mtx.mat_reverse(self._X, rows=False)
         # Flip along the rows only
         elif 2 in dim:
             Yf = _mtx.mat_reverse(self._Y, cols=False)
-            Xf = _mtx.mat_reverse(self._X, cols=False)
+            # Xf = _mtx.mat_reverse(self._X, cols=False)
 
         fsignal = self.clone()
         fsignal._Y = Yf
-        fsignal._X = Xf
+        # fsignal._X = Xf
         return fsignal
 
     def to_real(self):

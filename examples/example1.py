@@ -1,21 +1,22 @@
 """
-This module shows some examples of basic operations
-performed on signals.
+Basic signal operations
 
 """
 
 from udsp.signal.builtin import (Sinewave1D, Noise1D, Gaussian2D,
-                                 AudioChannel, ImageChannel,
-                                 MonoAudio, GrayImage)
+                                 AudioChannel, ImageChannel)
 
 from udsp.signal.ndim import Signal1D, Signal2D
 
 
+IPATH = "examples/data/"
+OPATH = "examples/data/"
+AUDIOFILE = IPATH + "music.wav"
+IMAGEFILE = OPATH + "image.png"
+
+
 # Signal creation
 # ===============
-
-ipath = "examples/data/"
-opath = "examples/data/"
 
 # Create a 3-second sine wave at 5Hz and some Gaussian noise
 swave = Sinewave1D(f=5, length=3, sfreq=80)
@@ -36,17 +37,17 @@ cust = Signal1D(
 gauss = Gaussian2D(u=(5, 5), s=(2, 2),
                    length=(10, 10), sfreq=5)
 
-# Create 1D signals from the  channels in an audio file
-audio = AudioChannel.from_file(ipath + "music.wav")
+# Create a list of 1D signals from the audio channels in a file
+audio = AudioChannel.from_file(AUDIOFILE)
 
 # Create a 1D signal from audio downmixed to mono
-audio1 = MonoAudio(ipath + "music.wav")
+audio1 = AudioChannel.from_file(AUDIOFILE, mono=True)[0]
 
-# Create 1D signals from the color channels of an image
-image = ImageChannel.from_file(ipath + "image.png")
+# Create a list of 1D signals from the color channels of an image
+image = ImageChannel.from_file(IMAGEFILE)
 
-# Create a 1D signal from color image downmixed to grey
-image1 = GrayImage(ipath + "image.png")
+# Create a 1D signal from a color image downmixed to grey
+image1 = ImageChannel.from_file(IMAGEFILE, mono=True)[0]
 
 
 # Signal arithmetic
@@ -55,14 +56,20 @@ image1 = GrayImage(ipath + "image.png")
 # Addition
 nwave = swave + gnoise
 
+# Subtraction
+swave = nwave - gnoise
+
+# Ratio
+sratio = swave / gnoise
+
+# Multiplication
+swave2 = swave * swave
+
 # Scaling (by multiplication)
 nwave2 = swave + 0.2 * gnoise
 
 # Scaling (by division)
 nwave3 = swave + gnoise / 5
-
-# Subtraction
-swave = nwave2 - gnoise
 
 # Negation
 iwave = -swave
@@ -86,10 +93,34 @@ print(image1.dim)
 # Length in physical units
 print(audio1.length)
 
+# Physical units
+print(audio1.xunits)
+
 # Sampling frequency
 print(audio1.sfreq)
 
 
-# Signal manipulations
-# ====================
+# Signal manipulation
+# ===================
 
+# Extract a clip from a signal
+beat = audio1.clip([audio1.utos(3.4), audio1.utos(4)])
+
+# Flip (reverse) a signal
+ibeat = beat.flip()
+
+# Extend (pad) a signal
+pswave = swave.pad([swave.utos(1), swave.utos(1)])
+
+# Normalize within an interval
+naudio1 = audio1.normalize(0, 1)
+
+
+# Signal statistics
+# =================
+
+sw_min = swave.min()
+sw_max = swave.max()
+sw_mean = swave.mean()
+sw_stdv = swave.stddev()
+sw_var = swave.variance()
