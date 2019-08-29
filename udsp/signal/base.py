@@ -437,6 +437,18 @@ class Signal(object):
         """
         raise NotImplementedError
 
+    def gradient(self):
+        """
+        Computes the gradient (derivatives) of the signal
+
+        Returns
+        -------
+        Signal
+            The gradient signal
+
+        """
+        raise NotImplementedError
+
     def pad(self, p, v=0):
         """
         Pads the signal with a given value

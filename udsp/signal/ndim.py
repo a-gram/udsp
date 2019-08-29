@@ -12,6 +12,7 @@ from ..core import utils as _utl
 from ..core import plotter as _plt
 from .transforms import Transforms
 from .spectrums import Spectrum, Spectrum1D, Spectrum2D
+# from ..filter.builtin import DiffFilter1D, DiffFilter2D
 
 
 class Signal1D(Signal):
@@ -164,6 +165,11 @@ class Signal1D(Signal):
         spec = Spectrum1D(self, scale=scale)
         spec = getattr(spec, stype)
         return spec()
+
+    def gradient(self):
+
+        from ..filter.builtin import DiffFilter1D
+        return DiffFilter1D().process([self])[0]
 
     def pad(self, p, value=0):
 
@@ -486,6 +492,11 @@ class Signal2D(Signal):
         spec = Spectrum2D(self, scale=scale)
         spec = getattr(spec, stype)
         return spec()
+
+    def gradient(self):
+
+        from ..filter.builtin import DiffFilter2D
+        return DiffFilter2D().process([self])[0]
 
     def pad(self, p, value=0):
 

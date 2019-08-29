@@ -3,6 +3,8 @@ Basic signal operations
 
 """
 
+import math
+
 from udsp.signal.builtin import (Sinewave1D, Noise1D, Gaussian2D,
                                  AudioChannel, ImageChannel)
 
@@ -18,14 +20,11 @@ IMAGEFILE = OPATH + "image.png"
 # Signal creation
 # ===============
 
-# Create a 3-second sine wave at 5Hz and some Gaussian noise
-swave = Sinewave1D(f=5, length=3, sfreq=80)
-gnoise = Noise1D(pdf="normal", length=3, sfreq=80)
+# Create a 3-second sine wave at 5Hz
+swave = Sinewave1D(f=5, length=3, sfreq=80, p=3.14/6)
 
-# Create 3 notes
-la = Sinewave1D(f=440, length=1, sfreq=8000)
-do = Sinewave1D(f=523, length=1, sfreq=8000)
-mi = Sinewave1D(f=659, length=1, sfreq=8000)
+# Create normally distributed (gaussian) noise
+gnoise = Noise1D(pdf="normal", length=3, sfreq=80)
 
 # Create a custom 1D signal y(x)=x^3-4x+12 in [-3, 5]
 cust = Signal1D(
@@ -56,20 +55,32 @@ image1 = ImageChannel.from_file(IMAGEFILE, mono=True)[0]
 # Addition
 nwave = swave + gnoise
 
+# Addition with a constant
+nwave2 = swave + 10
+
 # Subtraction
 swave = nwave - gnoise
+
+# Subtraction with a constant
+nwave3 = swave - 10
 
 # Ratio
 sratio = swave / gnoise
 
+# Ratio with a constant
+sratio2 = swave / 10
+
 # Multiplication
 swave2 = swave * swave
 
-# Scaling (by multiplication)
-nwave2 = swave + 0.2 * gnoise
+# Multiplication with a constant
+swave3 = swave * 3
+
+# Linear combination
+nwave4 = swave + 0.2 * gnoise - 2 * sratio
 
 # Scaling (by division)
-nwave3 = swave + gnoise / 5
+nwave5 = swave + gnoise / 5
 
 # Negation
 iwave = -swave
@@ -100,8 +111,20 @@ print(audio1.xunits)
 print(audio1.sfreq)
 
 
-# Signal manipulation
-# ===================
+# Signal statistics
+# =================
+
+sw_min = swave.min()
+sw_max = swave.max()
+sw_mean = swave.mean()
+sw_stdv = swave.stddev()
+sw_var = swave.variance()
+
+sw_energy = swave.energy()
+sw_power = swave.power()
+
+# Signal transformation
+# =====================
 
 # Extract a clip from a signal
 beat = audio1.clip([audio1.utos(3.4), audio1.utos(4)])
@@ -115,12 +138,26 @@ pswave = swave.pad([swave.utos(1), swave.utos(1)])
 # Normalize within an interval
 naudio1 = audio1.normalize(0, 1)
 
+# Frequency (Fourier) transform
+fswave = swave.transform("frequency")
 
-# Signal statistics
-# =================
+# ... or equivalently
+# fswave = swave.fft()
 
-sw_min = swave.min()
-sw_max = swave.max()
-sw_mean = swave.mean()
-sw_stdv = swave.stddev()
-sw_var = swave.variance()
+# Power spectrum (default)
+ps_swave = fswave.spectrum()
+
+# Magnitude spectrum
+ms_swave = fswave.spectrum("magnitude")
+
+# Phase spectrum
+hs_swave = fswave.spectrum("phase")
+
+# Inverse transform
+iswave = fswave.transform("timespace").to_real()
+
+# ... or, equivalently
+# iswave = fswave.ifft()
+
+print(all(map(math.isclose, swave.get(), iswave.get())))
+

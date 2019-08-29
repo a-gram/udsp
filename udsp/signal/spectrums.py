@@ -61,9 +61,9 @@ class Spectrum1D(Spectrum):
 
         N = len(self._signal)
 
-        s = [(abs(y) ** 2) / (N / 2)
+        s = [(abs(y) ** 2) / N
              if self.scale == Spectrum.LINEAR else
-             _math.log((abs(y) ** 2) / (N / 2))
+             _math.log((abs(y) ** 2) / N)
              for y in self._signal.get()]
 
         return self._make(s)
@@ -72,9 +72,9 @@ class Spectrum1D(Spectrum):
 
         N = len(self._signal)
 
-        s = [abs(y) / (N / 2)
+        s = [abs(y) / N
              if self.scale == Spectrum.LINEAR else
-             _math.log(abs(y) / (N / 2))
+             _math.log(abs(y) / N)
              for y in self._signal.get()]
 
         return self._make(s)

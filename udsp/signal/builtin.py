@@ -5,6 +5,7 @@ Built-in signals commonly used in DSP
 
 import math as _math
 
+from .base import Signal
 from .bbase import Builtin1D, Builtin2D
 from ..core import mtx as _mtx
 from ..core import stat as _stat
@@ -253,7 +254,7 @@ class AudioChannel(Builtin1D):
 
     Attributes
     ----------
-    _audio: Audio
+    _data: list, Signal
         The audio data
     _id: int
         The channel number
@@ -269,13 +270,20 @@ class AudioChannel(Builtin1D):
 
 
     """
-    _audio = None
-
-    def __init__(self, **kwargs):
+    def __init__(self, data, bps=16, cid=0, **kwargs):
 
         super().__init__(**kwargs)
-        self._id = None
-        self._bps = None
+        if isinstance(data, Signal):
+            self._data = data.get()
+        else:
+            self._data = data
+        self._id = cid
+        self._bps = bps
+        if isinstance(data, Signal):
+            self._sfreq = data.sfreq
+        if not self._length:
+            self._length = len(data) / self.sfreq
+        self.make()
 
     @classmethod
     def from_file(cls, filename, mono=False):
@@ -299,23 +307,22 @@ class AudioChannel(Builtin1D):
         audio = _media.Audio.from_file(filename)
         try:
             if not mono:
-                cls._audio = audio.load()
+                data = audio.load()
             else:
-                cls._audio = cls._to_mono(audio.load())
+                data = cls._to_mono(audio.load())
 
             channels = []
-            for c, _ in enumerate(cls._audio):
+            for c, _ in enumerate(data):
                 channel = cls(
+                    data=data[c],
+                    bps=audio.metadata.bps,
+                    cid=c,
                     length=(audio.metadata.size /
                             audio.metadata.resolution),
                     sfreq=audio.metadata.resolution,
                     xunits="s"
                 )
-                channel._id = c
-                channel._bps = audio.metadata.bps
-                channel.make()
                 channels.append(channel)
-            cls._audio = None
         finally:
             del audio
         return channels
@@ -408,7 +415,7 @@ class AudioChannel(Builtin1D):
             raise RuntimeError("Bug")
 
     def _generate(self, x):
-        return self._audio[self._id]
+        return self._data
 
     @property
     def id(self):
