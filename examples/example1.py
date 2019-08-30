@@ -14,14 +14,14 @@ from udsp.signal.ndim import Signal1D, Signal2D
 IPATH = "examples/data/"
 OPATH = "examples/data/"
 AUDIOFILE = IPATH + "music.wav"
-IMAGEFILE = OPATH + "image.png"
+IMAGEFILE = OPATH + "cimage.png"
 
 
 # Signal creation
 # ===============
 
 # Create a 3-second sine wave at 5Hz
-swave = Sinewave1D(f=5, length=3, sfreq=80, p=3.14/6)
+swave = Sinewave1D(f=5, length=3, sfreq=80)
 
 # Create normally distributed (gaussian) noise
 gnoise = Noise1D(pdf="normal", length=3, sfreq=80)

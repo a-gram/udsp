@@ -255,11 +255,11 @@ class AudioChannel(Builtin1D):
     Attributes
     ----------
     _data: list, Signal
-        The audio data
+        The audio channel data
     _id: int
         The channel number
     _bps: int
-        The sample resolution in bits per sample
+        The bits per sample
 
     Properties
     ----------
@@ -587,12 +587,12 @@ class ImageChannel(Builtin2D):
 
     Attributes
     ----------
-    _image: Image
-        The image source object
+    _data: list[list], Signal
+        The image channel data
     _id: int
         The channel number
     _bps: int
-        The sample resolution in bits per sample
+        The bits per sample
 
     Properties
     ----------
@@ -603,12 +603,20 @@ class ImageChannel(Builtin2D):
 
 
     """
-    _image = None
+    def __init__(self, data, bps=8, cid=0, **kwargs):
 
-    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._id = None
-        self._bps = None
+        if isinstance(data, Signal):
+            self._data = data.get()
+        else:
+            self._data = data
+        self._id = cid
+        self._bps = bps
+        if isinstance(data, Signal):
+            self._sfreq = data.sfreq
+        if not self._length:
+            self._length = _mtx.mat_dim(data)
+        self.make()
 
     @classmethod
     def from_file(cls, filename, mono=False):
@@ -632,20 +640,19 @@ class ImageChannel(Builtin2D):
         image = _media.Image.from_file(filename)
         try:
             if not mono:
-                cls._image = image.load()
+                data = image.load()
             else:
-                cls._image = cls._to_mono(image.load())
+                data = cls._to_mono(image.load())
 
             channels = []
-            for c, _ in enumerate(cls._image):
+            for c, _ in enumerate(data):
                 channel = cls(
+                    data=data[c],
+                    bps=image.metadata.bps,
+                    cid=c,
                     length=(*reversed(image.metadata.size),)
                 )
-                channel._id = c
-                channel._bps = image.metadata.bps
-                channel.make()
                 channels.append(channel)
-            cls._image = None
         finally:
             del image
         return channels
@@ -742,7 +749,7 @@ class ImageChannel(Builtin2D):
             raise RuntimeError("Bug")
 
     def _generate(self, x):
-        return self._image[self._id]
+        return self._data
 
     @property
     def id(self):

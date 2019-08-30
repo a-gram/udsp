@@ -15,6 +15,12 @@ class Builtin1D(Signal1D):
 
     """
     def __init__(self, **kwargs):
+
+        # Builtin signals automatically create the data vectors,
+        # so providing them should not be allowed.
+        if "y" in kwargs or "x" in kwargs:
+            raise ValueError("Parameter 'y' or 'x' not allowed here")
+
         super().__init__(**kwargs)
 
     def make(self):
@@ -91,6 +97,12 @@ class Builtin2D(Signal2D):
 
     """
     def __init__(self, **kwargs):
+
+        # Builtin signals automatically create the data vectors,
+        # so providing them should not be allowed.
+        if "y" in kwargs or "x" in kwargs:
+            raise ValueError("Parameter 'y' or 'x' not allowed here")
+
         super().__init__(**kwargs)
 
     def make(self):

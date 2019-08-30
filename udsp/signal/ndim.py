@@ -119,19 +119,14 @@ class Signal1D(Signal):
 
     def set(self, y, x=None, length=None):
 
-        if not y and not x:
-            raise ValueError(
-                "At least Y must be provided."
-            )
-
         if not y:
             raise ValueError(
-                "Y can't be empty."
+                "No signal data provided."
             )
 
         if x and y and not _mtx.vec_dims_equal(y, x):
             raise ValueError(
-                "X and Y must be the same size."
+                "'y' and 'x' data must be the same size."
             )
 
         if length is not None and length < 0:
