@@ -1,5 +1,5 @@
 """
-Basic signal operations
+uDSP - Basic signal operations
 
 """
 

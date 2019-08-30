@@ -3,16 +3,9 @@
 uDSP (micro-dsp) is a small library to perform basic Digital Signal Processing
 operations, such as signal arithmetic, Fourier Transform, frequency response, 
 filtering, etc. The library is exclusively released as an educational material 
-and not as a production tool. In no way it tries to replace industry-standard 
-DSP libraries such as SciPy, NumPy, etc. It has been developed as an additional 
-resource to some blog articles about image processing with the sole purpose of 
-illustrating DSP concepts with a fluent syntax that is much closer to plain 
-English than to formal mathematical jargon.
-If you find that the library uses a too much verbose syntax and could have
-been made more concise, that is completely intentional.
-
-Beware that since it is a 100% pure Python library its performance in terms 
-of speed is not great.
+or experimentation playground. It is not a production tool and in no way it 
+tries to replace industry-standard DSP libraries such as SciPy, NumPy, etc. 
+Being a 100% pure Python library you can expect its performance not to be great.
 
 ## Requirements
 
